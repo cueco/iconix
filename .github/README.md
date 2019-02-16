@@ -1,4 +1,4 @@
-# Iconix <img src="https://drive.google.com/uc?id=0B0f4ypHfNKm5b0w5SklmMldvajg" width="30">
+# Iconix <img src="https://drive.google.com/drive/u/1/folders/16bbO_KueP5GReAXmV4ofXu6NF4diG7Kz" width="30">
 [![](https://jitpack.io/v/danimahardhika/candybar-library.svg)](https://jitpack.io/#danimahardhika/candybar-library) [![Build Status](https://travis-ci.org/danimahardhika/candybar-library.svg?branch=master)](https://travis-ci.org/danimahardhika/candybar-library) [![CircleCI](https://circleci.com/gh/danimahardhika/candybar-library.svg?style=svg)](https://circleci.com/gh/danimahardhika/candybar-library) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/108f01d34ab2456b866c5700f03591a5)](https://www.codacy.com/app/danimahardhika/candybar-library?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=danimahardhika/candybar-library&amp;utm_campaign=Badge_Grade) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) 
 <br>Android Icon Pack Material Dashboard
 <p><a href='https://play.google.com/store/apps/details?id=cue.iconix'><img alt='Get it on Google Play' src='https://play.google.com/intl/en_us/badges/images/generic/en_badge_web_generic.png' width="200"/></a></p>
@@ -42,6 +42,7 @@ Take a look inside [Wiki Site](https://github.com/danimahardhika/candybar-librar
   * [List of Supported Launchers](https://github.com/danimahardhika/candybar-library/wiki/List-of-Supported-Launcher)
 * Icon Picker: see all icons included with sections and search
 * Icon Request
+  * Regular Request: disabled
   * Premium Request: pay to request
 * Cloud Based Wallpaper
   * Preview wallpaper
@@ -49,7 +50,7 @@ Take a look inside [Wiki Site](https://github.com/danimahardhika/candybar-librar
   * Download wallpaper
 * Settings
   * Clear Cache
-  * Swith to Dark Theme
+  * Switch to Dark Theme
   * Restore Purchases: restore premium request after reinstalling
 * Frequently Asked Questions: with search
 * About
