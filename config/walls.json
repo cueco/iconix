@@ -1,0 +1,152 @@
+{
+    "Categories": 
+        [
+            {
+                "name": "Minimal"
+            }
+        ],
+    
+	"Wallpapers":
+        [
+			{
+				"author": "Cue",
+				"url": "https://cueagency.co/apps/iconix/assets/walls/iconix-w1.jpg",
+				"thumbUrl": "https://cueagency.co/apps/iconix/assets/walls/iconix-w1.jpg",
+				"name": "Ocean",
+                "category": "minimal"
+			},
+			{
+				"author": "Cue",
+				"url": "https://cueagency.co/apps/iconix/assets/walls/iconix-w2.jpg",
+				"thumbUrl": "https://cueagency.co/apps/iconix/assets/walls/iconix-w2.jpg",
+				"name": "Tropical",
+                "category": "minimal"
+			},
+			{
+				"author": "Cue",
+				"url": "https://cueagency.co/apps/iconix/assets/walls/iconix-w3.jpg",
+				"thumbUrl": "https://cueagency.co/apps/iconix/assets/walls/iconix-w3.jpg",
+				"name": "Dusk",
+                "category": "minimal"
+			},
+			{
+				"author": "Cue",
+				"url": "https://cueagency.co/apps/iconix/assets/walls/iconix-w4.jpg",
+				"thumbUrl": "https://cueagency.co/apps/iconix/assets/walls/iconix-w4.jpg",
+				"name": "Sky",
+                "category": "minimal"
+			},
+			{
+				"author": "Cue",
+				"url": "https://cueagency.co/apps/iconix/assets/walls/iconix-w5.jpg",
+				"thumbUrl": "https://cueagency.co/apps/iconix/assets/walls/iconix-w5.jpg",
+				"name": "Faze",
+                "category": "minimal"
+			},
+			{
+				"author": "Unsplash",
+				"url": "https://cueagency.co/apps/iconix/assets/walls/iconix-w6.jpg",
+				"thumbUrl": "https://cueagency.co/apps/iconix/assets/walls/iconix-w6.jpg",
+				"name": "Prism",
+                "category": "minimal"
+			},
+			{
+				"author": "Unsplash",
+				"url": "https://cueagency.co/apps/iconix/assets/walls/iconix-w7.jpg",
+				"thumbUrl": "https://cueagency.co/apps/iconix/assets/walls/iconix-w7.jpg",
+				"name": "Storm",
+                "category": "minimal"
+			},
+			{
+				"author": "Unsplash",
+				"url": "https://cueagency.co/apps/iconix/assets/walls/iconix-w8.jpg",
+				"thumbUrl": "https://cueagency.co/apps/iconix/assets/walls/iconix-w8.jpg",
+				"name": "Swirl",
+                "category": "minimal"
+			},
+			{
+				"author": "Unsplash",
+				"url": "https://cueagency.co/apps/iconix/assets/walls/iconix-w9.jpg",
+				"thumbUrl": "https://cueagency.co/apps/iconix/assets/walls/iconix-w9.jpg",
+				"name": "Arctic",
+                "category": "Unsplash"
+			},
+			{
+				"author": "Unsplash",
+				"url": "https://cueagency.co/apps/iconix/assets/walls/iconix-w10.jpg",
+				"thumbUrl": "https://cueagency.co/apps/iconix/assets/walls/iconix-w10.jpg",
+				"name": "Scape",
+                "category": "minimal"
+			},
+			{
+				"author": "Unsplash",
+				"url": "https://cueagency.co/apps/iconix/assets/walls/iconix-w11.jpg",
+				"thumbUrl": "https://cueagency.co/apps/iconix/assets/walls/iconix-w11.jpg",
+				"name": "Midnight",
+                "category": "minimal"
+			},
+			{
+				"author": "Unsplash",
+				"url": "https://cueagency.co/apps/iconix/assets/walls/iconix-w12.jpg",
+				"thumbUrl": "https://cueagency.co/apps/iconix/assets/walls/iconix-w12.jpg",
+				"name": "Radial",
+                "category": "minimal"
+			},
+			{
+				"author": "Unsplash",
+				"url": "https://cueagency.co/apps/iconix/assets/walls/iconix-w13.jpg",
+				"thumbUrl": "https://cueagency.co/apps/iconix/assets/walls/iconix-w13.jpg",
+				"name": "Curve",
+                "category": "minimal"
+			},
+			{
+				"author": "Unsplash",
+				"url": "https://cueagency.co/apps/iconix/assets/walls/iconix-w14.jpg",
+				"thumbUrl": "https://cueagency.co/apps/iconix/assets/walls/iconix-w14.jpg",
+				"name": "Curve Pearl",
+                "category": "minimal"
+			},
+			{
+				"author": "Unsplash",
+				"url": "https://cueagency.co/apps/iconix/assets/walls/iconix-w15.jpg",
+				"thumbUrl": "https://cueagency.co/apps/iconix/assets/walls/iconix-w15.jpg",
+				"name": "Curve Rose",
+                "category": "minimal"
+			},
+			{
+				"author": "Unsplash",
+				"url": "https://cueagency.co/apps/iconix/assets/walls/iconix-w16.jpg",
+				"thumbUrl": "https://cueagency.co/apps/iconix/assets/walls/iconix-w16.jpg",
+				"name": "Curve Plum",
+                "category": "minimal"
+			},
+			{
+				"author": "Unsplash",
+				"url": "https://cueagency.co/apps/iconix/assets/walls/iconix-w17.jpg",
+				"thumbUrl": "https://cueagency.co/apps/iconix/assets/walls/iconix-w17.jpg",
+				"name": "Leafy",
+                "category": "minimal"
+			},
+			{
+				"author": "Unsplash",
+				"url": "https://cueagency.co/apps/iconix/assets/walls/iconix-w18.jpg",
+				"thumbUrl": "https://cueagency.co/apps/iconix/assets/walls/iconix-w18.jpg",
+				"name": "Carbon",
+                "category": "minimal"
+			},
+			{
+				"author": "Unsplash",
+				"url": "https://cueagency.co/apps/iconix/assets/walls/iconix-w19.jpg",
+				"thumbUrl": "https://cueagency.co/apps/iconix/assets/walls/iconix-w19.jpg",
+				"name": "Fuscia",
+                "category": "minimal"
+			},
+			{
+				"author": "Unsplash",
+				"url": "https://cueagency.co/apps/iconix/assets/walls/iconix-w20.jpg",
+				"thumbUrl": "https://cueagency.co/apps/iconix/assets/walls/iconix-w20.jpg",
+				"name": "Fusion",
+                "category": "minimal"
+			}
+		]
+}
