@@ -29,7 +29,7 @@ dependencies {
 }
 ```
 
-# How to Use
+# Documentations
 Take a look inside [Wiki Site](https://github.com/danimahardhika/candybar-library/wiki)
 
 # Previews
@@ -56,19 +56,13 @@ Take a look inside [Wiki Site](https://github.com/danimahardhika/candybar-librar
 * About
 * Donation
 * Changelog: show changelog every update
-* Muzei Live Wallpaper: smart art source loader
+* Muzei Live Wallpaper: disabled
 * Localization: supports more than 10 languages
 
 **NOTE:** This is just Icon Pack Dashboard, not Icon Pack template or Icon Pack tutorial. You need to add required XML for Icon Pack by yourself.
 
 # Support Development
 Support development by making donation through demo app at Google Play
-
-# Translation
-Help translating CandyBar to supports more languages [here](http://danimahardhika.oneskyapp.com/collaboration/project?id=245866)
-
-# Need a Help?
-Join [CandyBar community](https://plus.google.com/communities/113391514858983102172) on Google+
 
 
 # License
