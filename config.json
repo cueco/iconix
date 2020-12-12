@@ -1,0 +1,15 @@
+
+{
+  "latestVersion": "3.8",
+  "latestVersionCode": 33,
+  "disableRequest": {
+    "below": 33,
+    "on": "32 31 30"
+  },
+  "url": "https://play.google.com/store/apps/details?id=cue.iconix",
+  "releaseNotes": [
+    "Added Update checker",
+    "Support for: "
+    "Bug fixes"
+  ]
+}
