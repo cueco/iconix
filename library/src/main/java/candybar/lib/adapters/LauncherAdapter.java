@@ -1,8 +1,6 @@
 package candybar.lib.adapters;
 
 import android.content.Context;
-import android.graphics.Bitmap;
-import android.os.Build;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,23 +10,18 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.palette.graphics.Palette;
-import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.danimahardhika.android.helpers.core.ColorHelper;
-import com.google.android.material.card.MaterialCardView;
-import com.nostra13.universalimageloader.core.ImageLoader;
-import com.nostra13.universalimageloader.core.listener.SimpleImageLoadingListener;
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.load.resource.bitmap.BitmapTransitionOptions;
 
 import java.util.List;
 
 import candybar.lib.R;
-import candybar.lib.applications.CandyBarApplication;
 import candybar.lib.helpers.LauncherHelper;
 import candybar.lib.items.Icon;
 import candybar.lib.preferences.Preferences;
-import candybar.lib.utils.ImageConfig;
 
 /*
  * CandyBar - Material Dashboard
@@ -48,13 +41,14 @@ import candybar.lib.utils.ImageConfig;
  * limitations under the License.
  */
 
-public class LauncherAdapter extends RecyclerView.Adapter<LauncherAdapter.ViewHolder> {
+public class LauncherAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     private final Context mContext;
     private final List<Icon> mLaunchers;
 
     private static final int TYPE_HEADER = 0;
     private static final int TYPE_CONTENT = 1;
+    private static final int TYPE_FOOTER = 2;
 
     public LauncherAdapter(@NonNull Context context, @NonNull List<Icon> launchers) {
         mContext = context;
@@ -62,68 +56,52 @@ public class LauncherAdapter extends RecyclerView.Adapter<LauncherAdapter.ViewHo
     }
 
     @Override
-    public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         View view = null;
         if (viewType == TYPE_HEADER) {
             view = LayoutInflater.from(mContext).inflate(
                     R.layout.fragment_apply_item_header, parent, false);
         } else if (viewType == TYPE_CONTENT) {
             view = LayoutInflater.from(mContext).inflate(
-                    R.layout.fragment_apply_item_grid, parent, false);
+                    R.layout.fragment_apply_item_list, parent, false);
+        } else if (viewType == TYPE_FOOTER) {
+            view = LayoutInflater.from(mContext).inflate(
+                    R.layout.fragment_apply_item_footer, parent, false);
+
+            return new FooterViewHolder(view);
         }
         return new ViewHolder(view, viewType);
     }
 
     @Override
-    public void onBindViewHolder(ViewHolder holder, int position) {
-        if (holder.holderId == TYPE_HEADER) {
-            holder.name.setText(mLaunchers.get(position).getTitle());
-        } else if (holder.holderId == TYPE_CONTENT) {
-            holder.name.setText(mLaunchers.get(position).getTitle());
-            ImageLoader.getInstance().displayImage("drawable://" + mLaunchers.get(position).getRes(),
-                    holder.icon, ImageConfig.getDefaultImageOptions(false),
-                    new SimpleImageLoadingListener() {
+    public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
+        if (holder.getItemViewType() == TYPE_HEADER) {
+            ((ViewHolder) holder).name.setText(mLaunchers.get(position).getTitle());
+        } else if (holder.getItemViewType() == TYPE_CONTENT) {
+            ViewHolder contentViewHolder = ((ViewHolder) holder);
+            contentViewHolder.name.setText(mLaunchers.get(position).getTitle());
 
-                        @Override
-                        public void onLoadingStarted(String imageUri, View view) {
-                            super.onLoadingStarted(imageUri, view);
-                            int color = ColorHelper.getAttributeColor(
-                                    mContext, R.attr.card_background);
-                            holder.name.setBackgroundColor(color);
-                            holder.name.setTextColor(ColorHelper.getTitleTextColor(color));
-                        }
-
-                        @Override
-                        public void onLoadingComplete(String imageUri, View view, Bitmap loadedImage) {
-                            super.onLoadingComplete(imageUri, view, loadedImage);
-                            if (CandyBarApplication.getConfiguration().isColoredApplyCard()) {
-                                Palette.from(loadedImage).generate(palette -> {
-                                    int defaultColor = ColorHelper.getAttributeColor(
-                                            mContext, R.attr.card_background);
-                                    int color = palette.getVibrantColor(defaultColor);
-                                    if (color == defaultColor)
-                                        color = palette.getMutedColor(defaultColor);
-                                    holder.name.setBackgroundColor(
-                                            ColorHelper.getDarkerColor(color, 0.8f));
-                                    int text = ColorHelper.getTitleTextColor(
-                                            ColorHelper.getDarkerColor(color, 0.8f));
-                                    holder.name.setTextColor(text);
-                                });
-                            }
-                        }
-                    });
+            Glide.with(mContext)
+                    .asBitmap()
+                    .load("drawable://" + mLaunchers.get(position).getRes())
+                    .transition(BitmapTransitionOptions.withCrossFade(300))
+                    .skipMemoryCache(true)
+                    .diskCacheStrategy(DiskCacheStrategy.NONE)
+                    .into(contentViewHolder.icon);
         }
     }
 
     @Override
     public int getItemCount() {
-        return mLaunchers.size();
+        return mLaunchers.size() + 1;
     }
 
     @Override
     public int getItemViewType(int position) {
-        if (position == getFirstHeaderPosition() || position == getLastHeaderPosition())
+        if (position == getFirstHeaderPosition() || position == getLastHeaderPosition()) {
             return TYPE_HEADER;
+        }
+        if (position == getItemCount() - 1) return TYPE_FOOTER;
         return TYPE_CONTENT;
     }
 
@@ -133,38 +111,14 @@ public class LauncherAdapter extends RecyclerView.Adapter<LauncherAdapter.ViewHo
         private ImageView icon;
         private LinearLayout container;
 
-        private int holderId;
-
         ViewHolder(View itemView, int viewType) {
             super(itemView);
             if (viewType == TYPE_HEADER) {
                 name = itemView.findViewById(R.id.name);
-                holderId = TYPE_HEADER;
             } else if (viewType == TYPE_CONTENT) {
                 icon = itemView.findViewById(R.id.icon);
                 name = itemView.findViewById(R.id.name);
                 container = itemView.findViewById(R.id.container);
-
-                MaterialCardView card = itemView.findViewById(R.id.card);
-                if (CandyBarApplication.getConfiguration().getApplyGrid() == CandyBarApplication.GridStyle.FLAT) {
-                    if (card.getLayoutParams() instanceof GridLayoutManager.LayoutParams) {
-                        card.setRadius(0f);
-                        card.setUseCompatPadding(false);
-                        int margin = mContext.getResources().getDimensionPixelSize(R.dimen.card_margin);
-                        GridLayoutManager.LayoutParams params = (GridLayoutManager.LayoutParams) card.getLayoutParams();
-                        params.setMargins(0, 0, margin, margin);
-
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
-                            params.setMarginEnd(margin);
-                        }
-                    }
-                }
-
-                if (!Preferences.get(mContext).isCardShadowEnabled()) {
-                    if (card != null) card.setCardElevation(0);
-                }
-
-                holderId = TYPE_CONTENT;
 
                 container.setOnClickListener(this);
             }
@@ -186,6 +140,17 @@ public class LauncherAdapter extends RecyclerView.Adapter<LauncherAdapter.ViewHo
                             Toast.LENGTH_LONG).show();
                 }
 
+            }
+        }
+    }
+
+    class FooterViewHolder extends RecyclerView.ViewHolder {
+
+        FooterViewHolder(View itemView) {
+            super(itemView);
+            if (!Preferences.get(mContext).isCardShadowEnabled()) {
+                View shadow = itemView.findViewById(R.id.shadow);
+                shadow.setVisibility(View.GONE);
             }
         }
     }

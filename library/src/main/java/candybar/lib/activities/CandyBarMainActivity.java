@@ -1,6 +1,5 @@
 package candybar.lib.activities;
 
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -30,13 +29,14 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
-import androidx.core.view.ViewCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
 import com.afollestad.materialdialogs.MaterialDialog;
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.danimahardhika.android.helpers.core.ColorHelper;
 import com.danimahardhika.android.helpers.core.DrawableHelper;
 import com.danimahardhika.android.helpers.core.FileHelper;
@@ -45,16 +45,11 @@ import com.danimahardhika.android.helpers.core.utils.LogUtil;
 import com.danimahardhika.android.helpers.license.LicenseHelper;
 import com.danimahardhika.android.helpers.permission.PermissionCode;
 import com.google.android.material.navigation.NavigationView;
-import com.nostra13.universalimageloader.core.ImageLoader;
-import com.nostra13.universalimageloader.core.assist.ImageSize;
-import com.nostra13.universalimageloader.core.imageaware.ImageViewAware;
 
 import java.io.File;
 import java.util.List;
 
 import candybar.lib.R;
-import candybar.lib.activities.callbacks.ActivityCallback;
-import candybar.lib.activities.configurations.ActivityConfiguration;
 import candybar.lib.applications.CandyBarApplication;
 import candybar.lib.databases.Database;
 import candybar.lib.fragments.AboutFragment;
@@ -75,6 +70,7 @@ import candybar.lib.helpers.LocaleHelper;
 import candybar.lib.helpers.NavigationViewHelper;
 import candybar.lib.helpers.PlaystoreCheckHelper;
 import candybar.lib.helpers.RequestHelper;
+import candybar.lib.helpers.ThemeHelper;
 import candybar.lib.helpers.TypefaceHelper;
 import candybar.lib.helpers.WallpaperHelper;
 import candybar.lib.items.Home;
@@ -88,7 +84,6 @@ import candybar.lib.services.CandyBarWallpapersService;
 import candybar.lib.tasks.IconRequestTask;
 import candybar.lib.tasks.IconsLoaderTask;
 import candybar.lib.utils.Extras;
-import candybar.lib.utils.ImageConfig;
 import candybar.lib.utils.InAppBillingProcessor;
 import candybar.lib.utils.listeners.InAppBillingListener;
 import candybar.lib.utils.listeners.RequestListener;
@@ -117,7 +112,7 @@ import io.github.inflationx.viewpump.ViewPumpContextWrapper;
 
 public abstract class CandyBarMainActivity extends AppCompatActivity implements
         ActivityCompat.OnRequestPermissionsResultCallback, RequestListener, InAppBillingListener,
-        SearchListener, WallpapersListener, ActivityCallback {
+        SearchListener, WallpapersListener {
 
     private TextView mToolbarTitle;
     private DrawerLayout mDrawerLayout;
@@ -131,6 +126,7 @@ public abstract class CandyBarMainActivity extends AppCompatActivity implements
     private LicenseHelper mLicenseHelper;
 
     private boolean mIsMenuVisible = true;
+    private boolean prevIsDarkTheme;
 
     public static List<Request> sMissedApps;
     public static List<Icon> sSections;
@@ -140,30 +136,36 @@ public abstract class CandyBarMainActivity extends AppCompatActivity implements
 
     private ActivityConfiguration mConfig;
 
+    @NonNull
+    public abstract ActivityConfiguration onInit();
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
-        super.setTheme(Preferences.get(this).isDarkTheme() ?
+        LocaleHelper.setLocale(this);
+
+        prevIsDarkTheme = ThemeHelper.isDarkTheme(this);
+        super.setTheme(ThemeHelper.isDarkTheme(this) ?
                 R.style.AppThemeDark : R.style.AppTheme);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         ColorHelper.setupStatusBarIconColor(this);
         ColorHelper.setNavigationBarColor(this, ContextCompat.getColor(this,
-                Preferences.get(this).isDarkTheme() ?
+                ThemeHelper.isDarkTheme(this) ?
                         R.color.navigationBarDark : R.color.navigationBar));
-        if (!Preferences.get(this).isDarkTheme() && (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)) {
-            this.getWindow().addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-            this.getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.colorPrimaryDark));
-            if (ColorHelper.isLightColor(ContextCompat.getColor(this, R.color.navigationBar))
-                    && ColorHelper.isLightColor(ContextCompat.getColor(this, R.color.colorPrimaryDark))) {
-                this.getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
-            } else {
-                if (ColorHelper.isLightColor(ContextCompat.getColor(this, R.color.navigationBar))) {
-                    this.getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
-                } else if (ColorHelper.isLightColor(ContextCompat.getColor(this, R.color.colorPrimaryDark))) {
-                    this.getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
-                }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !ThemeHelper.isDarkTheme(this)) {
+            int flags = 0;
+            if (ColorHelper.isLightColor(ContextCompat.getColor(this, R.color.navigationBar)))
+                flags = flags | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+            if (ColorHelper.isLightColor(ContextCompat.getColor(this, R.color.colorPrimaryDark)))
+                flags = flags | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+            if (flags != 0) {
+                this.getWindow().addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+                this.getWindow().getDecorView().setSystemUiVisibility(flags);
+                this.getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.colorPrimaryDark));
             }
         }
+
         registerBroadcastReceiver();
         startService(new Intent(this, CandyBarService.class));
 
@@ -180,7 +182,7 @@ public abstract class CandyBarMainActivity extends AppCompatActivity implements
         Toolbar toolbar = findViewById(R.id.toolbar);
         mToolbarTitle = findViewById(R.id.toolbar_title);
 
-        toolbar.setPopupTheme(Preferences.get(this).isDarkTheme() ?
+        toolbar.setPopupTheme(ThemeHelper.isDarkTheme(this) ?
                 R.style.AppThemeDark : R.style.AppTheme);
         toolbar.setTitle("");
         setSupportActionBar(toolbar);
@@ -223,29 +225,16 @@ public abstract class CandyBarMainActivity extends AppCompatActivity implements
             return;
         }
 
-        if (!Preferences.get(this).isPlaystoreCheckEnabled() && !mConfig.isLicenseCheckerEnabled() && Preferences.get(this).isNewVersion()) {
-            ChangelogFragment.showChangelog(mFragManager);
-            File cache = this.getCacheDir();
-            FileHelper.clearDirectory(cache);
+        if (!Preferences.get(this).isPlaystoreCheckEnabled() && !mConfig.isLicenseCheckerEnabled()) {
+            if (Preferences.get(this).isNewVersion()) {
+                ChangelogFragment.showChangelog(mFragManager);
+                File cache = this.getCacheDir();
+                FileHelper.clearDirectory(cache);
+            }
         }
 
         if (mConfig.isLicenseCheckerEnabled() && !Preferences.get(this).isLicensed()) {
-            PackageManager pm = getApplicationContext().getPackageManager();
-            ComponentName compName = new ComponentName(getPackageName(), getPackageName() + ".alias.Intent");
-            pm.setComponentEnabledSetting(
-                    compName,
-                    PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
-                    PackageManager.DONT_KILL_APP);
             finish();
-        }
-
-        if (Preferences.get(this).isLicensed() || (!mConfig.isLicenseCheckerEnabled() && !Preferences.get(this).isPlaystoreCheckEnabled())) {
-            PackageManager pm = getApplicationContext().getPackageManager();
-            ComponentName compName = new ComponentName(getPackageName(), getPackageName() + ".alias.Intent");
-            pm.setComponentEnabledSetting(
-                    compName,
-                    PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
-                    PackageManager.DONT_KILL_APP);
         }
     }
 
@@ -258,6 +247,10 @@ public abstract class CandyBarMainActivity extends AppCompatActivity implements
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
+        if (prevIsDarkTheme != ThemeHelper.isDarkTheme(this)) {
+            recreate();
+            return;
+        }
         LocaleHelper.setLocale(this);
         if (mIsMenuVisible) mDrawerToggle.onConfigurationChanged(newConfig);
     }
@@ -412,11 +405,6 @@ public abstract class CandyBarMainActivity extends AppCompatActivity implements
 
     @Override
     public void onRequestBuilt(Intent intent, int type) {
-        if (intent == null) {
-            Toast.makeText(this, "Icon Request: Intent is null", Toast.LENGTH_LONG).show();
-            return;
-        }
-
         if (type == IntentChooserFragment.ICON_REQUEST) {
             if (RequestFragment.sSelectedRequests == null)
                 return;
@@ -447,12 +435,15 @@ public abstract class CandyBarMainActivity extends AppCompatActivity implements
             }
         }
 
-        try {
-            startActivity(intent);
-        } catch (IllegalArgumentException e) {
-            startActivity(Intent.createChooser(intent,
-                    getResources().getString(R.string.app_client)));
+        if (intent != null) {
+            try {
+                startActivity(intent);
+            } catch (IllegalArgumentException e) {
+                startActivity(Intent.createChooser(intent,
+                        getResources().getString(R.string.app_client)));
+            }
         }
+
         CandyBarApplication.sRequestProperty = null;
         CandyBarApplication.sZipPath = null;
     }
@@ -527,17 +518,13 @@ public abstract class CandyBarMainActivity extends AppCompatActivity implements
                     if (fragment != null) fragment.resetWallpapersCount();
                 }
 
-                int accent = ColorHelper.getAttributeColor(this, R.attr.colorAccent);
                 LinearLayout container = (LinearLayout) mNavigationView.getMenu().getItem(4).getActionView();
                 if (container != null) {
                     TextView counter = container.findViewById(R.id.counter);
                     if (counter == null) return;
 
-                    ViewCompat.setBackground(counter, DrawableHelper.getTintedDrawable(this,
-                            R.drawable.ic_toolbar_circle, accent));
-                    counter.setTextColor(ColorHelper.getTitleTextColor(accent));
                     int newItem = (size - offlineSize);
-                    counter.setText(String.valueOf(newItem > 99 ? "99+" : newItem));
+                    counter.setText(this.getResources().getString(R.string.txt_new) + " " + (newItem > 99 ? "99+" : newItem));
                     container.setVisibility(View.VISIBLE);
                     return;
                 }
@@ -623,13 +610,13 @@ public abstract class CandyBarMainActivity extends AppCompatActivity implements
         NavigationViewHelper.initWallpapers(mNavigationView);
 
         ColorStateList itemStateList = ContextCompat.getColorStateList(this,
-                Preferences.get(this).isDarkTheme() ?
+                ThemeHelper.isDarkTheme(this) ?
                         R.color.navigation_view_item_highlight_dark :
                         R.color.navigation_view_item_highlight);
         mNavigationView.setItemTextColor(itemStateList);
         mNavigationView.setItemIconTintList(itemStateList);
         Drawable background = ContextCompat.getDrawable(this,
-                Preferences.get(this).isDarkTheme() ?
+                ThemeHelper.isDarkTheme(this) ?
                         R.drawable.navigation_view_item_background_dark :
                         R.drawable.navigation_view_item_background);
         mNavigationView.setItemBackground(background);
@@ -651,6 +638,7 @@ public abstract class CandyBarMainActivity extends AppCompatActivity implements
 
         // FIX ANDROIDX
         // NavigationViewHelper.hideScrollBar(mNavigationView);
+        mNavigationView.setVerticalScrollBarEnabled(false);
     }
 
     private void initNavigationViewHeader() {
@@ -692,8 +680,14 @@ public abstract class CandyBarMainActivity extends AppCompatActivity implements
             imageUrl = "drawable://" + DrawableHelper.getResourceId(this, imageUrl);
         }
 
-        ImageLoader.getInstance().displayImage(imageUrl, new ImageViewAware(image),
-                ImageConfig.getDefaultImageOptions(true), new ImageSize(720, 720), null, null);
+        Glide.with(this)
+                .load(imageUrl)
+                .override(720)
+                .optionalCenterInside()
+                .diskCacheStrategy(imageUrl.contains("drawable://")
+                        ? DiskCacheStrategy.NONE
+                        : DiskCacheStrategy.RESOURCE)
+                .into(image);
     }
 
     private void registerBroadcastReceiver() {
@@ -820,6 +814,66 @@ public abstract class CandyBarMainActivity extends AppCompatActivity implements
                 mPosition = mLastPosition = 0;
                 mFragmentTag = Extras.TAG_HOME;
                 return new HomeFragment();
+        }
+    }
+
+    public static class ActivityConfiguration {
+
+        private boolean mIsLicenseCheckerEnabled;
+        private byte[] mRandomString;
+        private String mLicenseKey;
+        private String[] mDonationProductsId;
+        private String[] mPremiumRequestProductsId;
+        private int[] mPremiumRequestProductsCount;
+
+        public ActivityConfiguration setLicenseCheckerEnabled(boolean enabled) {
+            mIsLicenseCheckerEnabled = enabled;
+            return this;
+        }
+
+        public ActivityConfiguration setRandomString(@NonNull byte[] randomString) {
+            mRandomString = randomString;
+            return this;
+        }
+
+        public ActivityConfiguration setLicenseKey(@NonNull String licenseKey) {
+            mLicenseKey = licenseKey;
+            return this;
+        }
+
+        public ActivityConfiguration setDonationProductsId(@NonNull String[] productsId) {
+            mDonationProductsId = productsId;
+            return this;
+        }
+
+        public ActivityConfiguration setPremiumRequestProducts(@NonNull String[] ids, @NonNull int[] counts) {
+            mPremiumRequestProductsId = ids;
+            mPremiumRequestProductsCount = counts;
+            return this;
+        }
+
+        public boolean isLicenseCheckerEnabled() {
+            return mIsLicenseCheckerEnabled;
+        }
+
+        public byte[] getRandomString() {
+            return mRandomString;
+        }
+
+        public String getLicenseKey() {
+            return mLicenseKey;
+        }
+
+        public String[] getDonationProductsId() {
+            return mDonationProductsId;
+        }
+
+        public String[] getPremiumRequestProductsId() {
+            return mPremiumRequestProductsId;
+        }
+
+        public int[] getPremiumRequestProductsCount() {
+            return mPremiumRequestProductsCount;
         }
     }
 }

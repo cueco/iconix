@@ -16,11 +16,11 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.danimahardhika.android.helpers.core.WindowHelper;
-import com.nostra13.universalimageloader.core.assist.ImageSize;
 
 import java.io.File;
 
 import candybar.lib.R;
+import candybar.lib.items.ImageSize;
 import candybar.lib.items.Wallpaper;
 import candybar.lib.preferences.Preferences;
 
@@ -135,6 +135,7 @@ public class WallpaperHelper {
             int navBarHeight = WindowHelper.getNavigationBarHeight(context);
             targetHeight += (statusBarHeight + navBarHeight);
         }
+
         return new ImageSize(targetWidth, targetHeight);
     }
 

@@ -8,7 +8,6 @@ import androidx.annotation.Nullable;
 import androidx.multidex.MultiDexApplication;
 
 import com.danimahardhika.android.helpers.core.utils.LogUtil;
-import com.nostra13.universalimageloader.core.ImageLoader;
 
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
@@ -22,7 +21,6 @@ import candybar.lib.databases.Database;
 import candybar.lib.helpers.LocaleHelper;
 import candybar.lib.items.Request;
 import candybar.lib.preferences.Preferences;
-import candybar.lib.utils.ImageConfig;
 import candybar.lib.utils.JsonStructure;
 import io.github.inflationx.calligraphy3.CalligraphyConfig;
 import io.github.inflationx.calligraphy3.CalligraphyInterceptor;
@@ -46,13 +44,16 @@ import io.github.inflationx.viewpump.ViewPump;
  * limitations under the License.
  */
 
-public abstract class CandyBarApplication extends MultiDexApplication implements ApplicationCallback {
+public abstract class CandyBarApplication extends MultiDexApplication {
 
     private static Configuration mConfiguration;
     private Thread.UncaughtExceptionHandler mHandler;
 
     public static Request.Property sRequestProperty;
     public static String sZipPath = null;
+
+    @NonNull
+    public abstract Configuration onInit();
 
     public static Configuration getConfiguration() {
         if (mConfiguration == null) {
@@ -66,9 +67,6 @@ public abstract class CandyBarApplication extends MultiDexApplication implements
         super.onCreate();
         Database.get(this).openDatabase();
 
-        if (!ImageLoader.getInstance().isInited())
-            ImageLoader.getInstance().init(ImageConfig.getImageLoaderConfiguration(this));
-
         ViewPump.init(ViewPump.builder()
                 .addInterceptor(new CalligraphyInterceptor(
                         new CalligraphyConfig.Builder()
@@ -77,7 +75,7 @@ public abstract class CandyBarApplication extends MultiDexApplication implements
                                 .build()))
                 .build());
 
-        //Enable or disable logging
+        // Enable or disable logging
         LogUtil.setLoggingTag(getString(R.string.app_name));
         LogUtil.setLoggingEnabled(true);
 
@@ -128,6 +126,11 @@ public abstract class CandyBarApplication extends MultiDexApplication implements
     }
 
     public static class Configuration {
+        public interface EmailBodyGenerator {
+            String generate(List<Request> requests);
+        }
+
+        private EmailBodyGenerator mEmailBodyGenerator;
 
         private NavigationIcon mNavigationIcon = NavigationIcon.STYLE_1;
         private NavigationViewHeader mNavigationViewHeader = NavigationViewHeader.NORMAL;
@@ -160,6 +163,11 @@ public abstract class CandyBarApplication extends MultiDexApplication implements
 
         private boolean mIsCrashReportEnabled = true;
         private JsonStructure mWallpaperJsonStructure = new JsonStructure.Builder(null).build();
+
+        public Configuration setEmailBodyGenerator(EmailBodyGenerator emailBodyGenerator) {
+            mEmailBodyGenerator = emailBodyGenerator;
+            return this;
+        }
 
         public Configuration setNavigationIcon(@NonNull NavigationIcon navigationIcon) {
             mNavigationIcon = navigationIcon;
@@ -295,6 +303,10 @@ public abstract class CandyBarApplication extends MultiDexApplication implements
         public Configuration setHighQualityPreviewEnabled(boolean highQualityPreviewEnabled) {
             mIsHighQualityPreviewEnabled = highQualityPreviewEnabled;
             return this;
+        }
+
+        public EmailBodyGenerator getEmailBodyGenerator() {
+            return mEmailBodyGenerator;
         }
 
         public NavigationIcon getNavigationIcon() {

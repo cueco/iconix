@@ -7,7 +7,6 @@ import android.os.Build;
 import android.view.View;
 
 import androidx.annotation.Nullable;
-import androidx.appcompat.view.ContextThemeWrapper;
 import androidx.coordinatorlayout.widget.CoordinatorLayout;
 
 import com.danimahardhika.android.helpers.core.ColorHelper;
@@ -73,7 +72,7 @@ public class ViewHelper {
 
         params.setMargins(left, top, (right + rightNavBar), (bottom + bottomNavBar));
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
-            params.setMarginEnd((right + rightNavBar));
+            params.setMarginEnd(right + rightNavBar);
         }
         view.setLayoutParams(params);
     }
@@ -81,13 +80,7 @@ public class ViewHelper {
     public static void setFastScrollColor(@Nullable RecyclerFastScroller fastScroll) {
         if (fastScroll == null) return;
 
-        Context context = fastScroll.getContext();
-        if (context instanceof ContextThemeWrapper) {
-            context = ((ContextThemeWrapper) context).getBaseContext();
-        }
-
-        int accent = ColorHelper.getAttributeColor(context, R.attr.colorAccent);
-
+        int accent = ColorHelper.getAttributeColor(fastScroll.getContext(), R.attr.colorAccent);
         fastScroll.setBarColor(ColorHelper.setColorAlpha(accent, 0.8f));
         fastScroll.setHandleNormalColor(accent);
         fastScroll.setHandlePressedColor(ColorHelper.getDarkerColor(accent, 0.7f));
@@ -95,14 +88,13 @@ public class ViewHelper {
 
     public static Point getWallpaperViewRatio(String viewStyle) {
         switch (viewStyle.toLowerCase(Locale.getDefault())) {
+            default:
             case "square":
                 return new Point(1, 1);
             case "landscape":
                 return new Point(16, 9);
             case "portrait":
                 return new Point(4, 5);
-            default:
-                return new Point(1, 1);
         }
     }
 
@@ -110,14 +102,13 @@ public class ViewHelper {
         switch (viewStyle.toLowerCase(Locale.getDefault())) {
             case "card_square":
                 return new Home.Style(new Point(1, 1), Home.Style.Type.CARD_SQUARE);
+            default:
             case "card_landscape":
                 return new Home.Style(new Point(16, 9), Home.Style.Type.CARD_LANDSCAPE);
             case "square":
                 return new Home.Style(new Point(1, 1), Home.Style.Type.SQUARE);
             case "landscape":
                 return new Home.Style(new Point(16, 9), Home.Style.Type.LANDSCAPE);
-            default:
-                return new Home.Style(new Point(16, 9), Home.Style.Type.CARD_LANDSCAPE);
         }
     }
 }

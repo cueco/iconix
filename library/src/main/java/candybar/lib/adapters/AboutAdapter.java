@@ -23,22 +23,24 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.StaggeredGridLayoutManager;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
 import com.danimahardhika.android.helpers.core.ColorHelper;
 import com.danimahardhika.android.helpers.core.DrawableHelper;
 import com.danimahardhika.android.helpers.core.utils.LogUtil;
 import com.google.android.material.card.MaterialCardView;
 import com.mikhaellopez.circularimageview.CircularImageView;
-import com.nostra13.universalimageloader.core.ImageLoader;
 
 import org.sufficientlysecure.htmltextview.HtmlTextView;
 
+import candybar.lib.BuildConfig;
 import candybar.lib.R;
 import candybar.lib.applications.CandyBarApplication;
 import candybar.lib.fragments.dialog.CreditsFragment;
 import candybar.lib.fragments.dialog.LicensesFragment;
 import candybar.lib.helpers.ConfigurationHelper;
 import candybar.lib.preferences.Preferences;
-import candybar.lib.utils.ImageConfig;
 
 /*
  * CandyBar - Material Dashboard
@@ -66,7 +68,9 @@ public class AboutAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
     private final boolean mShowExtraInfo;
 
-    boolean mShowContributors, mShowPrivacyPolicy, mShowTerms;
+    boolean mShowContributors;
+    boolean mShowPrivacyPolicy;
+    final boolean mShowTerms;
 
     private static final int TYPE_HEADER = 0;
     private static final int TYPE_EXTRA_INFO = 1;
@@ -131,13 +135,19 @@ public class AboutAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
             if (ColorHelper.isValidColor(imageUri)) {
                 headerViewHolder.image.setBackgroundColor(Color.parseColor(imageUri));
-            } else if (!URLUtil.isValidUrl(imageUri)) {
-                imageUri = "drawable://" + DrawableHelper.getResourceId(mContext, imageUri);
-                ImageLoader.getInstance().displayImage(imageUri, headerViewHolder.image,
-                        ImageConfig.getDefaultImageOptions(true));
             } else {
-                ImageLoader.getInstance().displayImage(imageUri, headerViewHolder.image,
-                        ImageConfig.getDefaultImageOptions(true));
+                if (!URLUtil.isValidUrl(imageUri)) {
+                    imageUri = "drawable://" + DrawableHelper.getResourceId(mContext, imageUri);
+                }
+
+                Glide.with(mContext)
+                        .load(imageUri)
+                        .transition(DrawableTransitionOptions.withCrossFade(300))
+                        .skipMemoryCache(true)
+                        .diskCacheStrategy(imageUri.contains("drawable://")
+                                ? DiskCacheStrategy.NONE
+                                : DiskCacheStrategy.RESOURCE)
+                        .into(headerViewHolder.image);
             }
 
             String profileUri = mContext.getResources().getString(R.string.about_profile_image);
@@ -145,8 +155,13 @@ public class AboutAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                 profileUri = "drawable://" + DrawableHelper.getResourceId(mContext, profileUri);
             }
 
-            ImageLoader.getInstance().displayImage(profileUri, headerViewHolder.profile,
-                    ImageConfig.getDefaultImageOptions(true));
+            Glide.with(mContext)
+                    .load(profileUri)
+                    .skipMemoryCache(true)
+                    .diskCacheStrategy(profileUri.contains("drawable://")
+                            ? DiskCacheStrategy.NONE
+                            : DiskCacheStrategy.RESOURCE)
+                    .into(headerViewHolder.profile);
         }
     }
 
@@ -212,7 +227,6 @@ public class AboutAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                     int margin = mContext.getResources().getDimensionPixelSize(R.dimen.card_margin);
                     StaggeredGridLayoutManager.LayoutParams params = (StaggeredGridLayoutManager.LayoutParams) card.getLayoutParams();
                     params.setMargins(0, 0, margin, margin);
-
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
                         params.setMarginEnd(margin);
                     }
@@ -262,7 +276,6 @@ public class AboutAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                     int margin = mContext.getResources().getDimensionPixelSize(R.dimen.card_margin);
                     StaggeredGridLayoutManager.LayoutParams params = (StaggeredGridLayoutManager.LayoutParams) card.getLayoutParams();
                     params.setMargins(0, 0, margin, margin);
-
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
                         params.setMarginEnd(margin);
                     }
@@ -349,7 +362,6 @@ public class AboutAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                     int margin = mContext.getResources().getDimensionPixelSize(R.dimen.card_margin);
                     StaggeredGridLayoutManager.LayoutParams params = (StaggeredGridLayoutManager.LayoutParams) card.getLayoutParams();
                     params.setMargins(0, 0, margin, margin);
-
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
                         params.setMarginEnd(margin);
                     }
@@ -375,6 +387,7 @@ public class AboutAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             int color = ColorHelper.getAttributeColor(mContext, android.R.attr.textColorPrimary);
             title.setCompoundDrawablesWithIntrinsicBounds(DrawableHelper.getTintedDrawable(
                     mContext, R.drawable.ic_toolbar_dashboard, color), null, null, null);
+            title.append(" v" + BuildConfig.VERSION_NAME);
 
             color = ConfigurationHelper.getSocialIconColor(mContext,
                     CandyBarApplication.getConfiguration().getSocialIconColor());

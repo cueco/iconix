@@ -22,6 +22,7 @@
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:networkSecurityConfig="@xml/network_config"
+        android:requestLegacyExternalStorage="true"
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
@@ -46,7 +47,8 @@
             android:name=".activities.MainActivity"
             android:launchMode="singleTop"
             android:theme="@style/AppTheme"
-            android:configChanges="orientation|keyboardHidden|screenSize">
+            android:configChanges="uiMode|orientation|keyboardHidden|screenSize">
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
             </intent-filter>
@@ -56,13 +58,6 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
             </intent-filter>
-        </activity>
-
-        <activity-alias
-            android:name=".alias.Intent"
-            android:targetActivity=".activities.MainActivity"
-            android:enabled="false">
-
             <intent-filter>
                 <action android:name="android.intent.action.GET_CONTENT" />
 
@@ -150,6 +145,11 @@
 
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
+            <!-- OnePlus Launcher -->
+            <intent-filter>
+                <action android:name="net.oneplus.launcher.icons.ACTION_PICK_ICON" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
             <!-- TSF Shell -->
             <intent-filter>
                 <action android:name="com.tsf.shell.themes" />
@@ -183,8 +183,7 @@
 
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
-
-        </activity-alias>
+        </activity>
 
         <provider
             android:name=".services.MuzeiService"

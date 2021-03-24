@@ -68,6 +68,7 @@ public class IconsSearchFragment extends Fragment {
     private RecyclerFastScroller mFastScroll;
     private TextView mSearchResult;
     private SearchView mSearchView;
+    private Fragment mFragment = this;
 
     private IconsAdapter mAdapter;
     private AsyncTask mAsyncTask;
@@ -94,8 +95,9 @@ public class IconsSearchFragment extends Fragment {
         mRecyclerView.setItemAnimator(new DefaultItemAnimator());
         mRecyclerView.setLayoutManager(new GridLayoutManager(getActivity(),
                 getActivity().getResources().getInteger(R.integer.icons_column_count)));
-        mFastScroll.attachRecyclerView(mRecyclerView);
+
         setFastScrollColor(mFastScroll);
+        mFastScroll.attachRecyclerView(mRecyclerView);
 
         mAsyncTask = new IconsLoader().execute();
     }
@@ -127,8 +129,20 @@ public class IconsSearchFragment extends Fragment {
         ViewHelper.setSearchViewCloseIcon(mSearchView, R.drawable.ic_toolbar_close);
         ViewHelper.setSearchViewSearchIcon(mSearchView, null);
 
-        mSearchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+        search.setOnActionExpandListener(new MenuItem.OnActionExpandListener() {
+            @Override
+            public boolean onMenuItemActionExpand(MenuItem item) {
+                return true;
+            }
 
+            @Override
+            public boolean onMenuItemActionCollapse(MenuItem item) {
+                getActivity().onBackPressed();
+                return true;
+            }
+        });
+
+        mSearchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextChange(String string) {
                 filterSearch(string);
@@ -245,12 +259,13 @@ public class IconsSearchFragment extends Fragment {
 
             mAsyncTask = null;
             if (aBoolean) {
-                mAdapter = new IconsAdapter(getActivity(), icons, true);
+                mAdapter = new IconsAdapter(getActivity(), icons, true, mFragment);
                 mRecyclerView.setAdapter(mAdapter);
+                filterSearch("");
                 mSearchView.requestFocus();
                 SoftKeyboardHelper.openKeyboard(getActivity());
             } else {
-                //Unable to load all icons
+                // Unable to load all icons
                 Toast.makeText(getActivity(), R.string.icons_load_failed,
                         Toast.LENGTH_LONG).show();
             }

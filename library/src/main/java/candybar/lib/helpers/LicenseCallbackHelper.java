@@ -1,15 +1,16 @@
 package candybar.lib.helpers;
 
-import android.content.ComponentName;
 import android.content.Context;
-import android.content.pm.PackageManager;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.afollestad.materialdialogs.MaterialDialog;
+import com.danimahardhika.android.helpers.core.FileHelper;
 import com.danimahardhika.android.helpers.license.LicenseCallback;
 import com.danimahardhika.android.helpers.license.LicenseHelper;
+
+import java.io.File;
 
 import candybar.lib.R;
 import candybar.lib.fragments.dialog.ChangelogFragment;
@@ -106,16 +107,14 @@ public class LicenseCallbackHelper implements LicenseCallback {
         Preferences.get(mContext).setFirstRun(false);
         if (status == LicenseHelper.Status.SUCCESS) {
             Preferences.get(mContext).setLicensed(true);
-            if (Preferences.get(mContext).isNewVersion())
+
+            if (Preferences.get(mContext).isNewVersion()) {
                 ChangelogFragment.showChangelog(((AppCompatActivity) mContext).getSupportFragmentManager());
+                File cache = mContext.getCacheDir();
+                FileHelper.clearDirectory(cache);
+            }
         } else if (status == LicenseHelper.Status.FAILED) {
             Preferences.get(mContext).setLicensed(false);
-            PackageManager pm = mContext.getPackageManager();
-            ComponentName compName = new ComponentName(mContext.getPackageName(), mContext.getPackageName() + ".alias.Intent");
-            pm.setComponentEnabledSetting(
-                    compName,
-                    PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
-                    PackageManager.DONT_KILL_APP);
             ((AppCompatActivity) mContext).finish();
         }
     }

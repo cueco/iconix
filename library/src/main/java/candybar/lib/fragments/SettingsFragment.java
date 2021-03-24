@@ -39,6 +39,7 @@ import candybar.lib.items.Language;
 import candybar.lib.items.Request;
 import candybar.lib.items.Setting;
 import candybar.lib.preferences.Preferences;
+import candybar.lib.utils.listeners.RequestListener;
 
 import static candybar.lib.helpers.DrawableHelper.getReqIcon;
 
@@ -122,14 +123,14 @@ public class SettingsFragment extends Fragment {
 
         settings.add(new Setting(R.drawable.ic_toolbar_storage,
                 getActivity().getResources().getString(R.string.pref_data_header),
-                "", "", "", Setting.Type.HEADER, -1));
+                "", "", "", Setting.Type.HEADER));
 
         settings.add(new Setting(-1, "",
                 getActivity().getResources().getString(R.string.pref_data_cache),
                 getActivity().getResources().getString(R.string.pref_data_cache_desc),
                 String.format(getActivity().getResources().getString(R.string.pref_data_cache_size),
                         formatter.format(cache) + " MB"),
-                Setting.Type.CACHE, -1));
+                Setting.Type.CACHE));
 
         if (getActivity().getResources().getBoolean(R.bool.enable_icon_request) ||
                 Preferences.get(getActivity()).isPremiumRequestEnabled() &&
@@ -137,74 +138,73 @@ public class SettingsFragment extends Fragment {
             settings.add(new Setting(-1, "",
                     getActivity().getResources().getString(R.string.pref_data_request),
                     getActivity().getResources().getString(R.string.pref_data_request_desc),
-                    "", Setting.Type.ICON_REQUEST, -1));
+                    "", Setting.Type.ICON_REQUEST));
         }
 
         if (Preferences.get(getActivity()).isPremiumRequestEnabled()) {
             settings.add(new Setting(R.drawable.ic_toolbar_premium_request,
                     getActivity().getResources().getString(R.string.pref_premium_request_header),
-                    "", "", "", Setting.Type.HEADER, -1));
+                    "", "", "", Setting.Type.HEADER));
 
             settings.add(new Setting(-1, "",
                     getActivity().getResources().getString(R.string.pref_premium_request_restore),
                     getActivity().getResources().getString(R.string.pref_premium_request_restore_desc),
-                    "", Setting.Type.RESTORE, -1));
+                    "", Setting.Type.RESTORE));
 
             settings.add(new Setting(-1, "",
                     getActivity().getResources().getString(R.string.pref_premium_request_rebuild),
                     getActivity().getResources().getString(R.string.pref_premium_request_rebuild_desc),
-                    "", Setting.Type.PREMIUM_REQUEST, -1));
+                    "", Setting.Type.PREMIUM_REQUEST));
         }
 
         if (CandyBarApplication.getConfiguration().isDashboardThemingEnabled()) {
             settings.add(new Setting(R.drawable.ic_toolbar_theme,
                     getActivity().getResources().getString(R.string.pref_theme_header),
-                    "", "", "", Setting.Type.HEADER, -1));
+                    "", "", "", Setting.Type.HEADER));
 
             settings.add(new Setting(-1, "",
-                    getActivity().getResources().getString(R.string.pref_theme_dark),
-                    getActivity().getResources().getString(R.string.pref_theme_dark_desc),
-                    "", Setting.Type.THEME, Preferences.get(getActivity()).isDarkTheme() ? 1 : 0));
+                    Preferences.get(getActivity()).getTheme().displayName(getActivity()),
+                    "", "", Setting.Type.THEME));
         }
 
         if (WallpaperHelper.getWallpaperType(getActivity()) == WallpaperHelper.CLOUD_WALLPAPERS) {
             settings.add(new Setting(R.drawable.ic_toolbar_wallpapers,
                     getActivity().getResources().getString(R.string.pref_wallpaper_header),
-                    "", "", "", Setting.Type.HEADER, -1));
+                    "", "", "", Setting.Type.HEADER));
 
             settings.add(new Setting(-1, "",
                     getActivity().getResources().getString(R.string.pref_wallpaper_location),
                     WallpaperHelper.getDefaultWallpapersDirectory(getActivity()).toString(), "",
-                    Setting.Type.WALLPAPER, -1));
+                    Setting.Type.WALLPAPER));
         }
 
         settings.add(new Setting(R.drawable.ic_toolbar_language,
                 getActivity().getResources().getString(R.string.pref_language_header),
-                "", "", "", Setting.Type.HEADER, -1));
+                "", "", "", Setting.Type.HEADER));
 
         Language language = LocaleHelper.getCurrentLanguage(getActivity());
         settings.add(new Setting(-1, "",
                 language.getName(),
-                "", "", Setting.Type.LANGUAGE, -1));
+                "", "", Setting.Type.LANGUAGE));
 
         settings.add(new Setting(R.drawable.ic_toolbar_others,
                 getActivity().getResources().getString(R.string.pref_others_header),
-                "", "", "", Setting.Type.HEADER, -1));
+                "", "", "", Setting.Type.HEADER));
 
         settings.add(new Setting(-1, "",
                 getActivity().getResources().getString(R.string.pref_others_changelog),
-                "", "", Setting.Type.CHANGELOG, -1));
+                "", "", Setting.Type.CHANGELOG));
 
         if (getActivity().getResources().getBoolean(R.bool.enable_apply)) {
             settings.add(new Setting(-1, "",
                     getActivity().getResources().getString(R.string.pref_others_report_bugs),
-                    "", "", Setting.Type.REPORT_BUGS, -1));
+                    "", "", Setting.Type.REPORT_BUGS));
         }
 
         if (getActivity().getResources().getBoolean(R.bool.show_intro)) {
             settings.add(new Setting(-1, "",
                     getActivity().getResources().getString(R.string.pref_others_reset_tutorial),
-                    "", "", Setting.Type.RESET_TUTORIAL, -1));
+                    "", "", Setting.Type.RESET_TUTORIAL));
         }
 
         mRecyclerView.setAdapter(new SettingsAdapter(getActivity(), settings));
@@ -217,22 +217,26 @@ public class SettingsFragment extends Fragment {
     private class PremiumRequestRebuilder extends AsyncTask<Void, Void, Boolean> {
 
         private MaterialDialog dialog;
+        private final boolean isArctic = RequestHelper.isPremiumArcticEnabled(getActivity());
+        private final String arcticApiKey = RequestHelper.getPremiumArcticApiKey(getActivity());
         private List<Request> requests;
-        private String log = "";
+        private String errorMessage = "";
 
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
-            MaterialDialog.Builder builder = new MaterialDialog.Builder(getActivity());
-            builder.typeface(
-                    TypefaceHelper.getMedium(getActivity()),
-                    TypefaceHelper.getRegular(getActivity()));
-            builder.content(R.string.premium_request_rebuilding);
-            builder.cancelable(false);
-            builder.canceledOnTouchOutside(false);
-            builder.progress(true, 0);
-            builder.progressIndeterminateStyle(true);
-            dialog = builder.build();
+
+            dialog = new MaterialDialog.Builder(getActivity())
+                    .typeface(
+                            TypefaceHelper.getMedium(getActivity()),
+                            TypefaceHelper.getRegular(getActivity()))
+                    .content(R.string.premium_request_rebuilding)
+                    .cancelable(false)
+                    .canceledOnTouchOutside(false)
+                    .progress(true, 0)
+                    .progressIndeterminateStyle(true)
+                    .build();
+
             dialog.show();
         }
 
@@ -245,33 +249,41 @@ public class SettingsFragment extends Fragment {
                     requests = Database.get(getActivity()).getPremiumRequest(null);
                     if (requests.size() == 0) return true;
 
-                    File appFilter = RequestHelper.buildXml(getActivity(), requests, RequestHelper.XmlType.APPFILTER);
-                    File appMap = RequestHelper.buildXml(getActivity(), requests, RequestHelper.XmlType.APPMAP);
-                    File themeResources = RequestHelper.buildXml(getActivity(), requests, RequestHelper.XmlType.THEME_RESOURCES);
                     List<String> files = new ArrayList<>();
 
-                    for (int i = 0; i < requests.size(); i++) {
-                        Drawable drawable = getReqIcon(getActivity(), requests.get(i).getActivity());
-                        String icon = IconsHelper.saveIcon(files, directory, drawable, requests.get(i).getName());
+                    for (Request request : requests) {
+                        Drawable drawable = getReqIcon(getActivity(), request.getActivity());
+                        String icon = IconsHelper.saveIcon(files, directory, drawable,
+                                isArctic ? request.getPackageName() : RequestHelper.fixNameForRequest(request.getName()));
                         if (icon != null) files.add(icon);
                     }
 
-                    if (appFilter != null) {
-                        files.add(appFilter.toString());
-                    }
+                    if (isArctic) {
+                        errorMessage = RequestHelper.sendArcticRequest(requests, files, directory, arcticApiKey);
+                        return errorMessage == null;
+                    } else {
+                        File appFilter = RequestHelper.buildXml(getActivity(), requests, RequestHelper.XmlType.APPFILTER);
+                        File appMap = RequestHelper.buildXml(getActivity(), requests, RequestHelper.XmlType.APPMAP);
+                        File themeResources = RequestHelper.buildXml(getActivity(), requests, RequestHelper.XmlType.THEME_RESOURCES);
 
-                    if (appMap != null) {
-                        files.add(appMap.toString());
-                    }
+                        if (appFilter != null) {
+                            files.add(appFilter.toString());
+                        }
 
-                    if (themeResources != null) {
-                        files.add(themeResources.toString());
+                        if (appMap != null) {
+                            files.add(appMap.toString());
+                        }
+
+                        if (themeResources != null) {
+                            files.add(themeResources.toString());
+                        }
+
+                        CandyBarApplication.sZipPath = FileHelper.createZip(files, new File(directory.toString(),
+                                RequestHelper.getGeneratedZipName(RequestHelper.REBUILD_ZIP)));
                     }
-                    CandyBarApplication.sZipPath = FileHelper.createZip(files, new File(directory.toString(),
-                            RequestHelper.getGeneratedZipName(RequestHelper.REBUILD_ZIP)));
                     return true;
                 } catch (Exception e) {
-                    log = e.toString();
+                    errorMessage = e.toString();
                     LogUtil.e(Log.getStackTraceString(e));
                     return false;
                 }
@@ -286,6 +298,8 @@ public class SettingsFragment extends Fragment {
             if (getActivity().isFinishing()) return;
 
             dialog.dismiss();
+            dialog = null;
+
             if (aBoolean) {
                 if (requests.size() == 0) {
                     Toast.makeText(getActivity(), R.string.premium_request_rebuilding_empty,
@@ -293,12 +307,16 @@ public class SettingsFragment extends Fragment {
                     return;
                 }
 
-                IntentChooserFragment.showIntentChooserDialog(getActivity()
-                        .getSupportFragmentManager(), IntentChooserFragment.REBUILD_ICON_REQUEST);
+                if (isArctic) {
+                    Toast.makeText(getActivity(), R.string.request_arctic_success, Toast.LENGTH_LONG).show();
+                    ((RequestListener) getActivity()).onRequestBuilt(null, IntentChooserFragment.REBUILD_ICON_REQUEST);
+                } else {
+                    IntentChooserFragment.showIntentChooserDialog(
+                            getActivity().getSupportFragmentManager(), IntentChooserFragment.REBUILD_ICON_REQUEST);
+                }
             } else {
-                Toast.makeText(getActivity(), "Failed: " + log, Toast.LENGTH_LONG).show();
+                Toast.makeText(getActivity(), "Failed: " + errorMessage, Toast.LENGTH_LONG).show();
             }
-            dialog = null;
         }
     }
 }

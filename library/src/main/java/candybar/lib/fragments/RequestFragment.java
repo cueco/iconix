@@ -2,13 +2,13 @@ package candybar.lib.fragments;
 
 import android.content.Intent;
 import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.res.Configuration;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.util.SparseBooleanArray;
@@ -40,7 +40,6 @@ import com.danimahardhika.android.helpers.core.utils.LogUtil;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.pluscubed.recyclerfastscroll.RecyclerFastScroller;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -65,6 +64,7 @@ import candybar.lib.items.Request;
 import candybar.lib.preferences.Preferences;
 import candybar.lib.utils.InAppBillingProcessor;
 import candybar.lib.utils.listeners.InAppBillingListener;
+import candybar.lib.utils.listeners.RequestListener;
 
 import static candybar.lib.helpers.DrawableHelper.getReqIcon;
 import static candybar.lib.helpers.ViewHelper.setFastScrollColor;
@@ -100,10 +100,6 @@ public class RequestFragment extends Fragment implements View.OnClickListener {
     private AsyncTask mAsyncTask;
 
     public static List<Integer> sSelectedRequests;
-
-    private static boolean canRequest = true;
-    private static int appVersionCode = 0, disabledReqBelow = 0;
-    private static String disabledReqOn = "0", updateUrl = "";
 
     private boolean noEmailClientError = false;
 
@@ -262,7 +258,7 @@ public class RequestFragment extends Fragment implements View.OnClickListener {
                 }
 
                 if ((getActivity().getResources().getBoolean(R.bool.json_check_before_request)) && (getActivity().getResources().getString(R.string.config_json).length() != 0)) {
-                    mAsyncTask = new checkConfigBeforeRequest().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                    mAsyncTask = new CheckConfig().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
                 } else {
                     mAsyncTask = new RequestLoader().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
                 }
@@ -378,22 +374,33 @@ public class RequestFragment extends Fragment implements View.OnClickListener {
     private class RequestLoader extends AsyncTask<Void, Void, Boolean> {
 
         private MaterialDialog dialog;
+        private boolean isArctic;
+        private String arcticApiKey;
+        private String errorMessage;
 
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
 
-            MaterialDialog.Builder builder = new MaterialDialog.Builder(getActivity());
-            builder.typeface(
-                    TypefaceHelper.getMedium(getActivity()),
-                    TypefaceHelper.getRegular(getActivity()));
-            builder.content(R.string.request_building);
-            builder.cancelable(false);
-            builder.canceledOnTouchOutside(false);
-            builder.progress(true, 0);
-            builder.progressIndeterminateStyle(true);
+            if (Preferences.get(getActivity()).isPremiumRequest()) {
+                isArctic = RequestHelper.isPremiumArcticEnabled(getActivity());
+                arcticApiKey = RequestHelper.getPremiumArcticApiKey(getActivity());
+            } else {
+                isArctic = RequestHelper.isRegularArcticEnabled(getActivity());
+                arcticApiKey = RequestHelper.getRegularArcticApiKey(getActivity());
+            }
 
-            dialog = builder.build();
+            dialog = new MaterialDialog.Builder(getActivity())
+                    .typeface(
+                            TypefaceHelper.getMedium(getActivity()),
+                            TypefaceHelper.getRegular(getActivity()))
+                    .content(R.string.request_building)
+                    .cancelable(false)
+                    .canceledOnTouchOutside(false)
+                    .progress(true, 0)
+                    .progressIndeterminateStyle(true)
+                    .build();
+
             dialog.show();
         }
 
@@ -403,64 +410,65 @@ public class RequestFragment extends Fragment implements View.OnClickListener {
                 try {
                     Thread.sleep(2);
 
-                    boolean nonMailingAppSend = getResources().getBoolean(R.bool.enable_non_mail_app_request);
-                    Intent intent;
-
-                    if (!nonMailingAppSend) {
-                        intent = new Intent(Intent.ACTION_SENDTO);
-                        intent.setData(Uri.parse("mailto:"));
-                    } else {
-                        intent = new Intent(Intent.ACTION_SEND);
-                        intent.setType("application/zip");
-                    }
-
-                    List<ResolveInfo> resolveInfos = getActivity().getPackageManager()
-                            .queryIntentActivities(intent, 0);
-                    if (resolveInfos.size() == 0) {
-                        noEmailClientError = true;
-                        return false;
-                    }
-
-                    if (Preferences.get(getActivity()).isPremiumRequest()) {
-                        TransactionDetails details = InAppBillingProcessor.get(getActivity())
-                                .getProcessor().getPurchaseTransactionDetails(
-                                        Preferences.get(getActivity()).getPremiumRequestProductId());
-                        if (details == null) return false;
-
-                        CandyBarApplication.sRequestProperty = new Request.Property(null,
-                                details.purchaseInfo.purchaseData.orderId,
-                                details.purchaseInfo.purchaseData.productId);
-                    }
-
                     RequestFragment.sSelectedRequests = mAdapter.getSelectedItems();
                     List<Request> requests = mAdapter.getSelectedApps();
-                    File appFilter = RequestHelper.buildXml(getActivity(), requests, RequestHelper.XmlType.APPFILTER);
-                    File appMap = RequestHelper.buildXml(getActivity(), requests, RequestHelper.XmlType.APPMAP);
-                    File themeResources = RequestHelper.buildXml(getActivity(), requests, RequestHelper.XmlType.THEME_RESOURCES);
 
                     File directory = getActivity().getCacheDir();
                     List<String> files = new ArrayList<>();
 
                     for (Request request : requests) {
                         Drawable drawable = getReqIcon(getActivity(), request.getActivity());
-                        String icon = IconsHelper.saveIcon(files, directory, drawable, request.getName());
+                        String icon = IconsHelper.saveIcon(files, directory, drawable,
+                                isArctic ? request.getPackageName() : RequestHelper.fixNameForRequest(request.getName()));
                         if (icon != null) files.add(icon);
                     }
 
-                    if (appFilter != null) {
-                        files.add(appFilter.toString());
-                    }
+                    if (isArctic) {
+                        errorMessage = RequestHelper.sendArcticRequest(requests, files, directory, arcticApiKey);
+                        return errorMessage == null;
+                    } else {
+                        boolean nonMailingAppSend = getResources().getBoolean(R.bool.enable_non_mail_app_request);
+                        Intent intent;
 
-                    if (appMap != null) {
-                        files.add(appMap.toString());
-                    }
+                        if (!nonMailingAppSend) {
+                            intent = new Intent(Intent.ACTION_SENDTO);
+                            intent.setData(Uri.parse("mailto:"));
+                        } else {
+                            intent = new Intent(Intent.ACTION_SEND);
+                            intent.setType("application/zip");
+                        }
 
-                    if (themeResources != null) {
-                        files.add(themeResources.toString());
-                    }
+                        List<ResolveInfo> resolveInfos = getActivity().getPackageManager()
+                                .queryIntentActivities(intent, 0);
+                        if (resolveInfos.size() == 0) {
+                            noEmailClientError = true;
+                            return false;
+                        }
 
-                    CandyBarApplication.sZipPath = FileHelper.createZip(files, new File(directory.toString(),
-                            RequestHelper.getGeneratedZipName(RequestHelper.ZIP)));
+                        if (Preferences.get(getActivity()).isPremiumRequest()) {
+                            TransactionDetails details = InAppBillingProcessor.get(getActivity())
+                                    .getProcessor().getPurchaseTransactionDetails(
+                                            Preferences.get(getActivity()).getPremiumRequestProductId());
+                            if (details == null) return false;
+
+                            CandyBarApplication.sRequestProperty = new Request.Property(null,
+                                    details.purchaseInfo.purchaseData.orderId,
+                                    details.purchaseInfo.purchaseData.productId);
+                        }
+
+                        File appFilter = RequestHelper.buildXml(getActivity(), requests, RequestHelper.XmlType.APPFILTER);
+                        File appMap = RequestHelper.buildXml(getActivity(), requests, RequestHelper.XmlType.APPMAP);
+                        File themeResources = RequestHelper.buildXml(getActivity(), requests, RequestHelper.XmlType.THEME_RESOURCES);
+
+                        if (appFilter != null) files.add(appFilter.toString());
+
+                        if (appMap != null) files.add(appMap.toString());
+
+                        if (themeResources != null) files.add(themeResources.toString());
+
+                        CandyBarApplication.sZipPath = FileHelper.createZip(files, new File(directory.toString(),
+                                RequestHelper.getGeneratedZipName(RequestHelper.ZIP)));
+                    }
                     return true;
                 } catch (RuntimeException | InterruptedException e) {
                     LogUtil.e(Log.getStackTraceString(e));
@@ -476,17 +484,33 @@ public class RequestFragment extends Fragment implements View.OnClickListener {
             if (getActivity() == null) return;
             if (getActivity().isFinishing()) return;
 
-            mAsyncTask = null;
             dialog.dismiss();
+            mAsyncTask = null;
+            dialog = null;
 
             if (aBoolean) {
-                IntentChooserFragment.showIntentChooserDialog(getActivity().getSupportFragmentManager(),
-                        IntentChooserFragment.ICON_REQUEST);
-
+                if (isArctic) {
+                    Toast.makeText(getActivity(), R.string.request_arctic_success, Toast.LENGTH_LONG).show();
+                    ((RequestListener) getActivity()).onRequestBuilt(null, IntentChooserFragment.ICON_REQUEST);
+                } else {
+                    IntentChooserFragment.showIntentChooserDialog(getActivity().getSupportFragmentManager(),
+                            IntentChooserFragment.ICON_REQUEST);
+                }
                 mAdapter.resetSelectedItems();
                 if (mMenuItem != null) mMenuItem.setIcon(R.drawable.ic_toolbar_select_all);
             } else {
-                if (noEmailClientError) {
+                if (isArctic) {
+                    new MaterialDialog.Builder(getActivity())
+                            .typeface(
+                                    TypefaceHelper.getMedium(getActivity()),
+                                    TypefaceHelper.getRegular(getActivity()))
+                            .content(R.string.request_arctic_error, "\"" + errorMessage + "\"")
+                            .cancelable(true)
+                            .canceledOnTouchOutside(false)
+                            .positiveText(R.string.close)
+                            .build()
+                            .show();
+                } else if (noEmailClientError) {
                     Toast.makeText(getActivity(), R.string.no_email_app,
                             Toast.LENGTH_LONG).show();
                 } else {
@@ -494,136 +518,118 @@ public class RequestFragment extends Fragment implements View.OnClickListener {
                             Toast.LENGTH_LONG).show();
                 }
             }
-
         }
     }
 
-    public class checkConfigBeforeRequest extends AsyncTask<Void, Void, Boolean> {
+    public class CheckConfig extends AsyncTask<Void, Void, Boolean> {
 
-        MaterialDialog fetchingDataDialog;
-        private JSONObject configJson;
+        private MaterialDialog dialog;
+        private boolean canRequest = true;
+        private String updateUrl;
 
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
 
-            MaterialDialog.Builder fetchDataDialogBuilder = new MaterialDialog.Builder(getActivity());
-            fetchDataDialogBuilder.typeface(
-                    TypefaceHelper.getMedium(getActivity()),
-                    TypefaceHelper.getRegular(getActivity()));
-            fetchDataDialogBuilder.content(R.string.request_fetching_data);
-            fetchDataDialogBuilder.cancelable(false);
-            fetchDataDialogBuilder.canceledOnTouchOutside(false);
-            fetchDataDialogBuilder.progress(true, 0);
-            fetchDataDialogBuilder.progressIndeterminateStyle(true);
+            dialog = new MaterialDialog.Builder(getActivity())
+                    .typeface(
+                            TypefaceHelper.getMedium(getActivity()),
+                            TypefaceHelper.getRegular(getActivity()))
+                    .content(R.string.request_fetching_data)
+                    .cancelable(false)
+                    .canceledOnTouchOutside(false)
+                    .progress(true, 0)
+                    .progressIndeterminateStyle(true)
+                    .build();
 
-            fetchingDataDialog = fetchDataDialogBuilder.build();
-            fetchingDataDialog.show();
+            dialog.show();
         }
 
         @Override
         protected Boolean doInBackground(Void... params) {
-            String str = getActivity().getResources().getString(R.string.config_json);
-            URLConnection urlConn = null;
+            String configJsonUrl = getActivity().getResources().getString(R.string.config_json);
+            URLConnection urlConnection;
             BufferedReader bufferedReader = null;
-            try {
-                URL url = new URL(str);
-                urlConn = url.openConnection();
-                bufferedReader = new BufferedReader(new InputStreamReader(urlConn.getInputStream()));
 
-                StringBuffer stringBuffer = new StringBuffer();
+            try {
+                urlConnection = new URL(configJsonUrl).openConnection();
+                bufferedReader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
+
                 String line;
+                StringBuilder stringBuilder = new StringBuilder();
                 while ((line = bufferedReader.readLine()) != null) {
-                    stringBuffer.append(line);
+                    stringBuilder.append(line);
                 }
 
-                configJson = new JSONObject(stringBuffer.toString());
+                JSONObject configJson = new JSONObject(stringBuilder.toString());
+                updateUrl = configJson.getString("url");
+
+                JSONObject disableRequestObj = configJson.getJSONObject("disableRequest");
+                long disableRequestBelow = disableRequestObj.optLong("below", 0);
+                String disableRequestOn = disableRequestObj.optString("on", "");
+                PackageInfo packageInfo = getActivity().getPackageManager().getPackageInfo(getActivity().getPackageName(), 0);
+                long appVersionCode = Build.VERSION.SDK_INT >= Build.VERSION_CODES.P ? packageInfo.getLongVersionCode() : packageInfo.versionCode;
+
+                if ((appVersionCode < disableRequestBelow) ||
+                        disableRequestOn.matches(".*\\b" + appVersionCode + "\\b.*")) {
+                    canRequest = false;
+                }
 
                 return true;
             } catch (Exception ex) {
-                Log.e("CandyBar", "Error Loading ConfigJson", ex);
-                return false;
+                LogUtil.e("Error loading Configuration JSON " + Log.getStackTraceString(ex));
             } finally {
                 if (bufferedReader != null) {
                     try {
                         bufferedReader.close();
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        LogUtil.e(Log.getStackTraceString(e));
                     }
                 }
             }
+
+            return false;
         }
 
         @Override
-        protected void onPostExecute(Boolean resBoolean) {
-            if (resBoolean) {
-                // Load Data
-                try {
-                    updateUrl = configJson.getString("url");
+        protected void onPostExecute(Boolean aBoolean) {
+            dialog.dismiss();
+            dialog = null;
 
-                    JSONObject disabledRequest = configJson.getJSONObject("disableRequest");
-
-                    disabledReqBelow = disabledRequest.getInt("below");
-                    disabledReqOn = disabledRequest.getString("on");
-                } catch (JSONException e) {
-                    LogUtil.e(Log.getStackTraceString(e));
-                }
-
-                try {
-                    PackageInfo pInfo = getActivity().getPackageManager().getPackageInfo(getActivity().getPackageName(), 0);
-                    appVersionCode = pInfo.versionCode;
-                } catch (PackageManager.NameNotFoundException e) {
-                    e.printStackTrace();
-                }
-
-                // Checks If Request can be Done or Not
-                if (appVersionCode < disabledReqBelow) canRequest = false;
-                String[] disabledReqOns = disabledReqOn.split("[\\s,]");
-                for (String version : disabledReqOns) {
-                    //Log.d("Disabled Versions", version);
-                    //Log.d("Disabled Version Length", version.length() + "");
-                    if ((appVersionCode + "").contentEquals(version)) canRequest = false;
-                }
-
-                // Icon Request
-                fetchingDataDialog.dismiss();
-
+            if (aBoolean) {
                 if (!canRequest) {
-                    MaterialDialog.Builder builder = new MaterialDialog.Builder(getActivity());
-                    builder.typeface(
-                            TypefaceHelper.getMedium(getActivity()),
-                            TypefaceHelper.getRegular(getActivity()));
-                    builder.content(R.string.request_app_disabled);
-                    builder.negativeText(R.string.close);
-                    builder.positiveText(R.string.update);
-                    builder.onPositive(((dialog, which) -> {
-                        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(updateUrl));
-                        intent.addFlags(Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT);
-                        getActivity().startActivity(intent);
-                    }));
-                    builder.cancelable(false);
-                    builder.canceledOnTouchOutside(false);
-                    MaterialDialog requestNotPermittedDialog = builder.build();
-                    requestNotPermittedDialog.show();
+                    new MaterialDialog.Builder(getActivity())
+                            .typeface(
+                                    TypefaceHelper.getMedium(getActivity()),
+                                    TypefaceHelper.getRegular(getActivity()))
+                            .content(R.string.request_app_disabled)
+                            .negativeText(R.string.close)
+                            .positiveText(R.string.update)
+                            .onPositive(((dialog, which) -> {
+                                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(updateUrl));
+                                intent.addFlags(Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT);
+                                getActivity().startActivity(intent);
+                            }))
+                            .cancelable(false)
+                            .canceledOnTouchOutside(false)
+                            .build()
+                            .show();
+
                     mAdapter.resetSelectedItems();
                     if (mMenuItem != null) mMenuItem.setIcon(R.drawable.ic_toolbar_select_all);
                 } else {
                     mAsyncTask = new RequestLoader().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
                 }
-
             } else {
-                fetchingDataDialog.dismiss();
-
-                MaterialDialog.Builder errorDialogBuilder = new MaterialDialog.Builder(getActivity());
-                errorDialogBuilder.typeface(
-                        TypefaceHelper.getMedium(getActivity()),
-                        TypefaceHelper.getRegular(getActivity()));
-                errorDialogBuilder.content(R.string.connection_error_long);
-                errorDialogBuilder.canceledOnTouchOutside(false);
-                errorDialogBuilder.positiveText(R.string.close);
-
-                MaterialDialog errorDialog = errorDialogBuilder.build();
-                errorDialog.show();
+                new MaterialDialog.Builder(getActivity())
+                        .typeface(
+                                TypefaceHelper.getMedium(getActivity()),
+                                TypefaceHelper.getRegular(getActivity()))
+                        .content(R.string.unable_to_load_config)
+                        .canceledOnTouchOutside(false)
+                        .positiveText(R.string.close)
+                        .build()
+                        .show();
             }
         }
     }

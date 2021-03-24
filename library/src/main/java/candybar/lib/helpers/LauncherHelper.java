@@ -37,122 +37,120 @@ public class LauncherHelper {
 
     private static final String thirdPartyHelperURL = "https://play.google.com/store/apps/details?id=com.momocode.shortcuts";
 
-    private static final int UNKNOWN = -1;
-    private static final int ACTION = 1;
-    private static final int ADW = 2;
-    private static final int APEX = 3;
-    private static final int ATOM = 4;
-    private static final int AVIATE = 5;
-    private static final int CMTHEME = 6;
-    private static final int GO = 7;
-    private static final int HOLO = 8;
-    private static final int HOLOHD = 9;
-    private static final int LAWNCHAIR_V2 = 10;
-    private static final int LGHOME = 11;
-    private static final int LGHOME3 = 12;
-    private static final int LUCID = 13;
-    private static final int MINI = 14;
-    private static final int NEXT = 15;
-    private static final int NOVA = 16;
-    private static final int PIXEL = 17;
-    private static final int SMART = 18;
-    private static final int SOLO = 19;
-    private static final int ZENUI = 20;
-    private static final int NOUGAT = 21;
-    private static final int M = 22;
-    private static final int ZERO = 23;
-    private static final int V = 24;
-    private static final int ABC = 25;
-    private static final int EVIE = 26;
-    private static final int POCO = 27;
-    private static final int POSIDON = 28;
-    private static final int LAWNCHAIR = 29;
-    private static final int MICROSOFT = 30;
-    private static final int FLICK = 31;
+    private enum Launcher {
+        UNKNOWN, ACTION, ADW, APEX, ATOM, AVIATE, CMTHEME, GO, HOLO, HOLOHD, LAWNCHAIR,
+        LGHOME, LGHOME3, LUCID, MINI, NEXT, NOVA, PIXEL, SMART, SOLO, ZENUI, NOUGAT, M,
+        ZERO, V, ABC, EVIE, POCO, POSIDON, MICROSOFT, FLICK, BLACKBERRY, SQUARE, NIAGARA
+    }
 
-    private static int getLauncherId(String packageName) {
-        if (packageName == null) return UNKNOWN;
+    private static Launcher getLauncher(String packageName) {
+        if (packageName == null) return Launcher.UNKNOWN;
         switch (packageName) {
             case "com.actionlauncher.playstore":
             case "com.chrislacy.actionlauncher.pro":
-                return ACTION;
+                return Launcher.ACTION;
             case "org.adw.launcher":
             case "org.adwfreak.launcher":
-                return ADW;
+                return Launcher.ADW;
             case "com.anddoes.launcher":
             case "com.anddoes.launcher.pro":
-                return APEX;
+                return Launcher.APEX;
             case "com.dlto.atom.launcher":
-                return ATOM;
+                return Launcher.ATOM;
             case "com.tul.aviate":
-                return AVIATE;
+                return Launcher.AVIATE;
             case "org.cyanogenmod.theme.chooser":
-                return CMTHEME;
+                return Launcher.CMTHEME;
             case "com.gau.go.launcherex":
-                return GO;
+                return Launcher.GO;
             case "com.mobint.hololauncher":
-                return HOLO;
+                return Launcher.HOLO;
             case "com.mobint.hololauncher.hd":
-                return HOLOHD;
+                return Launcher.HOLOHD;
             case "com.lge.launcher2":
-                return LGHOME;
+                return Launcher.LGHOME;
             case "com.lge.launcher3":
-                return LGHOME3;
+                return Launcher.LGHOME3;
             case "ch.deletescape.lawnchair.ci":
-                return LAWNCHAIR_V2;
             case "ch.deletescape.lawnchair.plah":
-                return LAWNCHAIR;
+                return Launcher.LAWNCHAIR;
             case "com.powerpoint45.launcher":
-                return LUCID;
+                return Launcher.LUCID;
             case "com.jiubang.go.mini.launcher":
-                return MINI;
+                return Launcher.MINI;
+            case "bitpit.launcher":
+                return Launcher.NIAGARA;
             case "com.gtp.nextlauncher":
             case "com.gtp.nextlauncher.trial":
-                return NEXT;
+                return Launcher.NEXT;
             case "com.teslacoilsw.launcher":
             case "com.teslacoilsw.launcher.prime":
-                return NOVA;
+                return Launcher.NOVA;
             case "com.google.android.apps.nexuslauncher":
-                return PIXEL;
+                return Launcher.PIXEL;
             case "ginlemon.flowerfree":
             case "ginlemon.flowerpro":
             case "ginlemon.flowerpro.special":
-                return SMART;
+                return Launcher.SMART;
             case "home.solo.launcher.free":
-                return SOLO;
+                return Launcher.SOLO;
+            case "com.ss.squarehome2":
+                return Launcher.SQUARE;
             case "com.asus.launcher":
-                return ZENUI;
+                return Launcher.ZENUI;
             case "me.craftsapp.nlauncher":
-                return NOUGAT;
+                return Launcher.NOUGAT;
             case "com.uprui.launcher.marshmallow":
-                return M;
+                return Launcher.M;
             case "com.zeroteam.zerolauncher":
-                return ZERO;
+                return Launcher.ZERO;
             case "com.vivid.launcher":
-                return V;
+                return Launcher.V;
             case "com.abclauncher.launcher":
-                return ABC;
+                return Launcher.ABC;
             case "is.shortcut":
-                return EVIE;
+                return Launcher.EVIE;
             case "com.mi.android.globallauncher":
-                return POCO;
+                return Launcher.POCO;
             case "posidon.launcher":
-                return POSIDON;
+                return Launcher.POSIDON;
             case "com.microsoft.launcher":
-                return MICROSOFT;
+                return Launcher.MICROSOFT;
             case "com.universallauncher.universallauncher":
-                return FLICK;
+                return Launcher.FLICK;
+            case "com.blackberry.blackberrylauncher":
+                return Launcher.BLACKBERRY;
             default:
-                return UNKNOWN;
+                return Launcher.UNKNOWN;
         }
     }
 
     public static void apply(@NonNull Context context, String packageName, String launcherName) {
-        applyLauncher(context, packageName, launcherName, getLauncherId(packageName));
+        applyLauncher(context, packageName, launcherName, getLauncher(packageName));
     }
 
-    private static void applyLauncher(@NonNull Context context, String launcherPackage, String launcherName, int id) {
-        switch (id) {
+    private static void applyLauncher(@NonNull Context context, String launcherPackage, String launcherName, Launcher launcher) {
+        switch (launcher) {
+            case ABC:
+                try {
+                    /*
+                     * Just want to let anyone who is going to copy
+                     * It's not easy searching for this
+                     * I will be grateful if you take this with a proper credit
+                     * Thank you
+                     */
+                    final Intent abc = context.getPackageManager().getLaunchIntentForPackage(
+                            "com.abclauncher.launcher");
+                    final Intent abc1 = new Intent("com.abclauncher.launcher.themes.themeaction");
+                    abc1.putExtra("theme_package_name", context.getPackageName());
+                    abc.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    context.sendBroadcast(abc1);
+                    context.startActivity(abc);
+                    ((AppCompatActivity) context).finish();
+                } catch (ActivityNotFoundException | NullPointerException e) {
+                    openGooglePlay(context, launcherPackage, launcherName);
+                }
+                break;
             case ACTION:
                 try {
                     final Intent action = context.getPackageManager().getLaunchIntentForPackage(
@@ -209,6 +207,9 @@ public class LauncherHelper {
                     openGooglePlay(context, launcherPackage, launcherName);
                 }
                 break;
+            case BLACKBERRY:
+                applyManual(context, launcherPackage, launcherName, "com.blackberry.blackberrylauncher.MainActivity");
+                break;
             case CMTHEME:
                 try {
                     final Intent cmtheme = new Intent("android.intent.action.MAIN");
@@ -222,6 +223,23 @@ public class LauncherHelper {
                 } catch (SecurityException | IllegalArgumentException e) {
                     Toast.makeText(context, R.string.apply_cmtheme_failed,
                             Toast.LENGTH_LONG).show();
+                }
+                break;
+            case EVIE:
+                applyEvie(context, launcherPackage, launcherName);
+                break;
+            case FLICK:
+                try {
+                    final Intent flick = context.getPackageManager().getLaunchIntentForPackage("com.universallauncher.universallauncher");
+                    final Intent flickAction = new Intent("com.universallauncher.universallauncher.FLICK_ICON_PACK_APPLIER");
+                    flickAction.putExtra("com.universallauncher.universallauncher.ICON_THEME_PACKAGE", context.getPackageName());
+                    flickAction.setComponent(new ComponentName("com.universallauncher.universallauncher", "com.android.launcher3.icon.ApplyIconPack"));
+                    flick.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    context.sendBroadcast(flickAction);
+                    context.startActivity(flick);
+                    ((AppCompatActivity) context).finish();
+                } catch (ActivityNotFoundException | NullPointerException e) {
+                    openGooglePlay(context, launcherPackage, launcherName);
                 }
                 break;
             case GO:
@@ -240,23 +258,18 @@ public class LauncherHelper {
                 }
                 break;
             case HOLO:
-                applyManual(context, launcherPackage, launcherName, "com.mobint.hololauncher.SettingsActivity");
-                break;
             case HOLOHD:
                 applyManual(context, launcherPackage, launcherName, "com.mobint.hololauncher.SettingsActivity");
                 break;
-            case LAWNCHAIR_V2:
+            case LAWNCHAIR:
                 try {
                     final Intent lawnchair = new Intent("ch.deletescape.lawnchair.APPLY_ICONS", null);
                     lawnchair.putExtra("packageName", context.getPackageName());
                     context.startActivity(lawnchair);
                     ((AppCompatActivity) context).finish();
                 } catch (ActivityNotFoundException | NullPointerException e) {
-                    notInstalledError(context, launcherName);
+                    openGooglePlay(context, launcherPackage, launcherName);
                 }
-                break;
-            case LAWNCHAIR:
-                applyManual(context, launcherPackage, launcherName, "ch.deletescape.lawnchair.settings.ui.SettingsActivity");
                 break;
             case LGHOME:
             case LGHOME3:
@@ -272,9 +285,21 @@ public class LauncherHelper {
                     openGooglePlay(context, launcherPackage, launcherName);
                 }
                 break;
+            case MICROSOFT:
+                applyManual(context, launcherPackage, launcherName, null);
+                break;
             case MINI:
                 applyManual(context, launcherPackage, launcherName,
                         "com.jiubang.go.mini.launcher.setting.MiniLauncherSettingActivity");
+                break;
+            case NIAGARA:
+                try {
+                    final Intent niagara = new Intent("bitpit.launcher.APPLY_ICONS");
+                    niagara.putExtra("packageName", context.getPackageName());
+                    context.startActivity(niagara);
+                } catch (ActivityNotFoundException | NullPointerException e) {
+                    openGooglePlay(context, launcherPackage, launcherName);
+                }
                 break;
             case NEXT:
                 try {
@@ -309,6 +334,21 @@ public class LauncherHelper {
             case PIXEL:
                 launcherIncompatible(context, launcherName);
                 break;
+            case POCO:
+                applyManual(context, launcherPackage, launcherName, "com.miui.home.settings.HomeSettingsActivity");
+                break;
+            case POSIDON:
+                try {
+                    Intent posidon = new Intent(Intent.ACTION_MAIN);
+                    posidon.setComponent(new ComponentName("posidon.launcher", "posidon.launcher.external.ApplyIcons"));
+                    posidon.putExtra("iconpack", context.getPackageName());
+                    posidon.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    context.startActivity(posidon);
+                    ((AppCompatActivity) context).finish();
+                } catch (ActivityNotFoundException | NullPointerException e) {
+                    openGooglePlay(context, launcherPackage, launcherName);
+                }
+                break;
             case SMART:
                 try {
                     final Intent smart = new Intent("ginlemon.smartlauncher.setGSLTHEME");
@@ -336,15 +376,12 @@ public class LauncherHelper {
                     openGooglePlay(context, launcherPackage, launcherName);
                 }
                 break;
-            case ZENUI:
+            case SQUARE:
                 try {
-                    final Intent asus = new Intent("com.asus.launcher");
-                    asus.setAction("com.asus.launcher.intent.action.APPLY_ICONPACK");
-                    asus.addCategory(Intent.CATEGORY_DEFAULT);
-                    asus.putExtra("com.asus.launcher.iconpack.PACKAGE_NAME", context.getPackageName());
-                    asus.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    context.startActivity(asus);
-                    ((AppCompatActivity) context).finish();
+                    final Intent square = new Intent("com.ss.squarehome2.ACTION_APPLY_ICONPACK");
+                    square.setComponent(ComponentName.unflattenFromString("com.ss.squarehome2/.ApplyThemeActivity"));
+                    square.putExtra("com.ss.squarehome2.EXTRA_ICONPACK", context.getPackageName());
+                    context.startActivity(square);
                 } catch (ActivityNotFoundException | NullPointerException e) {
                     openGooglePlay(context, launcherPackage, launcherName);
                 }
@@ -380,6 +417,19 @@ public class LauncherHelper {
                     m.putExtra("com.uprui.launcher.marshmallow.theme.NAME", context.getPackageName());
                     m.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     context.startActivity(m);
+                    ((AppCompatActivity) context).finish();
+                } catch (ActivityNotFoundException | NullPointerException e) {
+                    openGooglePlay(context, launcherPackage, launcherName);
+                }
+                break;
+            case ZENUI:
+                try {
+                    final Intent asus = new Intent("com.asus.launcher");
+                    asus.setAction("com.asus.launcher.intent.action.APPLY_ICONPACK");
+                    asus.addCategory(Intent.CATEGORY_DEFAULT);
+                    asus.putExtra("com.asus.launcher.iconpack.PACKAGE_NAME", context.getPackageName());
+                    asus.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    context.startActivity(asus);
                     ((AppCompatActivity) context).finish();
                 } catch (ActivityNotFoundException | NullPointerException e) {
                     openGooglePlay(context, launcherPackage, launcherName);
@@ -427,67 +477,10 @@ public class LauncherHelper {
                     openGooglePlay(context, launcherPackage, launcherName);
                 }
                 break;
-            case ABC:
-                try {
-                    /*
-                     * Just want to let anyone who is going to copy
-                     * It's not easy searching for this
-                     * I will be grateful if you take this with a proper credit
-                     * Thank you
-                     */
-                    final Intent abc = context.getPackageManager().getLaunchIntentForPackage(
-                            "com.abclauncher.launcher");
-                    final Intent abc1 = new Intent("com.abclauncher.launcher.themes.themeaction");
-                    abc1.putExtra("theme_package_name", context.getPackageName());
-                    abc.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    context.sendBroadcast(abc1);
-                    context.startActivity(abc);
-                    ((AppCompatActivity) context).finish();
-                } catch (ActivityNotFoundException | NullPointerException e) {
-                    openGooglePlay(context, launcherPackage, launcherName);
-                }
-                break;
-            case EVIE:
-                applyEvie(context, launcherPackage, launcherName);
-                break;
-            case POCO:
-                applyManual(context, launcherPackage, launcherName, "com.miui.home.settings.HomeSettingsActivity");
-                break;
-            case POSIDON:
-                try {
-                    Intent posidon = new Intent(Intent.ACTION_MAIN);
-                    posidon.setComponent(new ComponentName("posidon.launcher", "posidon.launcher.applyicons"));
-                    posidon.putExtra("iconpack", context.getPackageName());
-                    posidon.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    context.startActivity(posidon);
-                    ((AppCompatActivity) context).finish();
-                } catch (ActivityNotFoundException | NullPointerException e) {
-                    openGooglePlay(context, launcherPackage, launcherName);
-                }
-                break;
-            case MICROSOFT:
-                applyManual(context, launcherPackage, launcherName, "com.microsoft.launcher.Launcher");
-                break;
-            case FLICK:
-                //Todo: fix direct apply for flick launcher
-                try {
-                    final Intent flick = context.getPackageManager().getLaunchIntentForPackage(
-                            "com.universallauncher.universallauncher");
-                    final Intent flickAction = new Intent("com.android.launcher3.FLICK_ICON_PACK_APPLIER");
-                    flickAction.putExtra("com.android.launcher3.extra.ICON_THEME_PACKAGE", context.getPackageName());
-                    flick.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    context.sendBroadcast(flickAction);
-                    context.startActivity(flick);
-                    ((AppCompatActivity) context).finish();
-                } catch (ActivityNotFoundException | NullPointerException e) {
-                    openGooglePlay(context, launcherPackage, launcherName);
-                }
-                break;
         }
     }
 
     private static void applyManual(Context context, String launcherPackage, String launcherName, String activity) {
-
         if (isInstalled(context, launcherPackage)) {
             new MaterialDialog.Builder(context)
                     .typeface(
@@ -499,6 +492,7 @@ public class LauncherHelper {
                             context.getResources().getString(R.string.app_name)))
                     .positiveText(android.R.string.ok)
                     .onPositive((dialog, which) -> {
+                        if (activity == null) return;
                         try {
                             final Intent intent = new Intent(Intent.ACTION_MAIN);
                             intent.setComponent(new ComponentName(launcherPackage,
@@ -564,7 +558,7 @@ public class LauncherHelper {
                         TypefaceHelper.getMedium(context),
                         TypefaceHelper.getRegular(context))
                 .title(launcherName)
-                .content(String.format(context.getResources().getString(R.string.apply_launcher_incompatible), launcherName, launcherName))
+                .content(R.string.apply_launcher_incompatible, launcherName, launcherName)
                 .positiveText(android.R.string.yes)
                 .onPositive((dialog, which) -> {
                     try {
@@ -585,8 +579,7 @@ public class LauncherHelper {
                         TypefaceHelper.getMedium(context),
                         TypefaceHelper.getRegular(context))
                 .title(launcherName)
-                .content(String.format(context.getResources().getString(
-                        R.string.apply_launcher_not_installable), launcherName))
+                .content(R.string.apply_launcher_not_installable, launcherName)
                 .positiveText(context.getResources().getString(R.string.close))
                 .show();
     }
@@ -597,8 +590,7 @@ public class LauncherHelper {
                         TypefaceHelper.getMedium(context),
                         TypefaceHelper.getRegular(context))
                 .title(launcherName)
-                .content(String.format(context.getResources().getString(
-                        R.string.apply_launcher_not_installed), launcherName))
+                .content(R.string.apply_launcher_not_installed, launcherName)
                 .positiveText(context.getResources().getString(R.string.install))
                 .onPositive((dialog, which) -> {
                     try {

@@ -1,11 +1,14 @@
 package candybar.lib.adapters;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageInfo;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.util.Log;
 import android.util.TypedValue;
@@ -28,22 +31,28 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.StaggeredGridLayoutManager;
 
 import com.afollestad.materialdialogs.MaterialDialog;
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
 import com.danimahardhika.android.helpers.core.ColorHelper;
 import com.danimahardhika.android.helpers.core.DrawableHelper;
 import com.danimahardhika.android.helpers.core.utils.LogUtil;
-import com.github.javiersantos.appupdater.AppUpdaterUtils;
-import com.github.javiersantos.appupdater.enums.AppUpdaterError;
-import com.github.javiersantos.appupdater.enums.UpdateFrom;
-import com.github.javiersantos.appupdater.objects.Update;
 import com.google.android.material.card.MaterialCardView;
-import com.nostra13.universalimageloader.core.ImageLoader;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.sufficientlysecure.htmltextview.HtmlTextView;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.URL;
+import java.net.URLConnection;
 import java.util.List;
 
 import candybar.lib.R;
 import candybar.lib.activities.CandyBarMainActivity;
+import candybar.lib.adapters.dialog.ChangelogAdapter;
 import candybar.lib.applications.CandyBarApplication;
 import candybar.lib.fragments.dialog.IconPreviewFragment;
 import candybar.lib.fragments.dialog.OtherAppsFragment;
@@ -52,7 +61,7 @@ import candybar.lib.helpers.ViewHelper;
 import candybar.lib.helpers.WallpaperHelper;
 import candybar.lib.items.Home;
 import candybar.lib.preferences.Preferences;
-import candybar.lib.utils.ImageConfig;
+import candybar.lib.tasks.IconRequestTask;
 import candybar.lib.utils.views.HeaderView;
 import me.grantland.widget.AutofitTextView;
 
@@ -185,16 +194,21 @@ public class HomeAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             headerViewHolder.content.setHtml(mContext.getResources().getString(R.string.home_description));
 
             String uri = mContext.getResources().getString(R.string.home_image);
-            if (URLUtil.isValidUrl(uri)) {
-                ImageLoader.getInstance().displayImage(uri,
-                        headerViewHolder.image, ImageConfig.getDefaultImageOptions(true));
-            } else if (ColorHelper.isValidColor(uri)) {
+            if (ColorHelper.isValidColor(uri)) {
                 headerViewHolder.image.setBackgroundColor(Color.parseColor(uri));
             } else {
-                uri = "drawable://" + DrawableHelper.getResourceId(mContext, uri);
+                if (!URLUtil.isValidUrl(uri)) {
+                    uri = "drawable://" + DrawableHelper.getResourceId(mContext, uri);
+                }
 
-                ImageLoader.getInstance().displayImage(uri,
-                        headerViewHolder.image, ImageConfig.getDefaultImageOptions(true));
+                Glide.with(mContext)
+                        .load(uri)
+                        .transition(DrawableTransitionOptions.withCrossFade(300))
+                        .skipMemoryCache(true)
+                        .diskCacheStrategy(uri.contains("drawable://")
+                                ? DiskCacheStrategy.NONE
+                                : DiskCacheStrategy.RESOURCE)
+                        .into(headerViewHolder.image);
             }
         } else if (holder.getItemViewType() == TYPE_CONTENT) {
             ContentViewHolder contentViewHolder = (ContentViewHolder) holder;
@@ -215,6 +229,14 @@ public class HomeAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             }
 
             if (mHomes.get(finalPosition).getType() == Home.Type.ICONS) {
+                if (mHomes.get(finalPosition).isLoading() && CandyBarMainActivity.sIconsCount == 0 && CandyBarApplication.getConfiguration().isAutomaticIconsCountEnabled()) {
+                    contentViewHolder.progressBar.setVisibility(View.VISIBLE);
+                    contentViewHolder.autoFitTitle.setVisibility(View.GONE);
+                } else {
+                    contentViewHolder.progressBar.setVisibility(View.GONE);
+                    contentViewHolder.autoFitTitle.setVisibility(View.VISIBLE);
+                }
+
                 contentViewHolder.autoFitTitle.setSingleLine(true);
                 contentViewHolder.autoFitTitle.setMaxLines(1);
                 contentViewHolder.autoFitTitle.setTextSize(TypedValue.COMPLEX_UNIT_PX,
@@ -237,6 +259,16 @@ public class HomeAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             }
         } else if (holder.getItemViewType() == TYPE_ICON_REQUEST) {
             IconRequestViewHolder iconRequestViewHolder = (IconRequestViewHolder) holder;
+            if (mContext.getResources().getBoolean(R.bool.hide_missing_app_count)) {
+                iconRequestViewHolder.dataContainer.setVisibility(View.GONE);
+                iconRequestViewHolder.progressBar.setVisibility(View.GONE);
+            } else if (IconRequestTask.isLoading) {
+                iconRequestViewHolder.dataContainer.setVisibility(View.GONE);
+                iconRequestViewHolder.progressBar.setVisibility(View.VISIBLE);
+            } else {
+                iconRequestViewHolder.dataContainer.setVisibility(View.VISIBLE);
+                iconRequestViewHolder.progressBar.setVisibility(View.GONE);
+            }
 
             int installed = CandyBarMainActivity.sInstalledAppsCount;
             int missed = CandyBarMainActivity.sMissedApps == null ?
@@ -307,7 +339,6 @@ public class HomeAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                     int margin = mContext.getResources().getDimensionPixelSize(R.dimen.card_margin);
                     StaggeredGridLayoutManager.LayoutParams params = (StaggeredGridLayoutManager.LayoutParams) card.getLayoutParams();
                     params.setMargins(0, 0, margin, margin);
-
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
                         params.setMarginEnd(margin);
                     }
@@ -322,7 +353,6 @@ public class HomeAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                                 mContext.getResources().getDimensionPixelSize(R.dimen.content_padding_reverse),
                                 margin, margin);
                     }
-
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
                         params.setMarginEnd(margin);
                     }
@@ -376,7 +406,8 @@ public class HomeAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         public void onClick(View view) {
             int id = view.getId();
             if (id == R.id.rate) {
-                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(mContext.getResources().getString(R.string.rate_and_review_link).replaceAll("thisPackage", mContext.getPackageName())));
+                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(mContext.getResources().getString(R.string.rate_and_review_link)
+                        .replaceAll("\\{\\{packageName\\}\\}", mContext.getPackageName())));
                 intent.addFlags(Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT);
                 mContext.startActivity(intent);
             } else if (id == R.id.share) {
@@ -388,61 +419,145 @@ public class HomeAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 intent.putExtra(Intent.EXTRA_TEXT,
                         mContext.getResources().getString(R.string.share_app_body,
                                 mContext.getResources().getString(R.string.app_name),
-                                "\n" + mContext.getResources().getString(R.string.share_link).replaceAll("thisPackage", mContext.getPackageName())));
+                                "\n" + mContext.getResources().getString(R.string.share_link)
+                                        .replaceAll("\\{\\{packageName\\}\\}", mContext.getPackageName())));
                 mContext.startActivity(Intent.createChooser(intent,
                         mContext.getResources().getString(R.string.app_client)));
             } else if (id == R.id.update) {
+                new UpdateChecker().execute();
+            }
+        }
+    }
 
-                new AppUpdaterUtils(mContext)
-                        .setUpdateFrom(UpdateFrom.JSON)
-                        .setUpdateJSON(mContext.getResources().getString(R.string.config_json))
-                        .withListener(new AppUpdaterUtils.UpdateListener() {
-                            @Override
-                            public void onSuccess(Update update, Boolean isUpdateAvailable) {
-                                MaterialDialog.Builder builder = new MaterialDialog.Builder(mContext);
-                                builder.typeface(
-                                        TypefaceHelper.getMedium(mContext),
-                                        TypefaceHelper.getRegular(mContext));
-                                builder.customView(R.layout.fragment_update, false);
+    private class UpdateChecker extends AsyncTask<Void, Void, Boolean> {
 
-                                if (isUpdateAvailable) {
-                                    builder.positiveText(R.string.update);
-                                    builder.negativeText(R.string.close);
-                                    builder.onPositive((dialog, which) -> {
-                                        String downloadUrl = update.getUrlToDownload().toString();
-                                        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(downloadUrl));
-                                        intent.addFlags(Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT);
-                                        mContext.startActivity(intent);
-                                    });
-                                } else {
-                                    builder.positiveText(R.string.close);
-                                }
+        private MaterialDialog loadingDialog;
+        private String latestVersion;
+        private String updateUrl;
+        private String[] changelog;
+        private boolean isUpdateAvailable;
 
-                                MaterialDialog dialog = builder.build();
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
 
-                                TextView changelogVersion = (TextView) dialog.findViewById(R.id.changelog_version);
-                                ListView mChangelogList = (ListView) dialog.findViewById(R.id.changelog_list);
+            loadingDialog = new MaterialDialog.Builder(mContext)
+                    .typeface(
+                            TypefaceHelper.getMedium(mContext),
+                            TypefaceHelper.getRegular(mContext))
+                    .content(R.string.checking_for_update)
+                    .cancelable(false)
+                    .canceledOnTouchOutside(false)
+                    .progress(true, 0)
+                    .progressIndeterminateStyle(true)
+                    .build();
 
-                                if (isUpdateAvailable) {
-                                    changelogVersion.setText(
-                                            mContext.getResources().getString(R.string.update_available) + "\n" +
-                                                    mContext.getResources().getString(R.string.changelog_version) + " " +
-                                                    update.getLatestVersion());
-                                    String[] changelog = update.getReleaseNotes().split("\n");
-                                    mChangelogList.setAdapter(new ChangelogAdapter(mContext, changelog));
-                                } else {
-                                    changelogVersion.setText(mContext.getResources().getString(R.string.no_update_available));
-                                    mChangelogList.setVisibility(View.GONE);
-                                }
+            loadingDialog.show();
+        }
 
-                                dialog.show();
-                            }
+        @Override
+        protected Boolean doInBackground(Void... voids) {
+            boolean isSuccess = true;
+            String configJsonUrl = mContext.getResources().getString(R.string.config_json);
+            URLConnection urlConnection;
+            BufferedReader bufferedReader = null;
 
-                            @Override
-                            public void onFailed(AppUpdaterError error) {
-                                Log.d("AppUpdater Error", "Something went wrong");
-                            }
-                        }).start();
+            try {
+                urlConnection = new URL(configJsonUrl).openConnection();
+                bufferedReader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
+
+                String line;
+                StringBuilder stringBuilder = new StringBuilder();
+                while ((line = bufferedReader.readLine()) != null) {
+                    stringBuilder.append(line);
+                }
+
+                JSONObject configJson = new JSONObject(stringBuilder.toString());
+                latestVersion = configJson.getString("latestVersion");
+                updateUrl = configJson.getString("url");
+
+                PackageInfo packageInfo = mContext.getPackageManager().getPackageInfo(mContext.getPackageName(), 0);
+                long latestVersionCode = configJson.getLong("latestVersionCode");
+                long appVersionCode = Build.VERSION.SDK_INT >= Build.VERSION_CODES.P ? packageInfo.getLongVersionCode() : packageInfo.versionCode;
+
+                if (latestVersionCode > appVersionCode) {
+                    isUpdateAvailable = true;
+                    JSONArray changelogArray = configJson.getJSONArray("releaseNotes");
+                    changelog = new String[changelogArray.length()];
+                    for (int i = 0; i < changelogArray.length(); i++) {
+                        changelog[i] = changelogArray.getString(i);
+                    }
+                }
+            } catch (Exception ex) {
+                LogUtil.e("Error loading Configuration JSON " + Log.getStackTraceString(ex));
+                isSuccess = false;
+            } finally {
+                if (bufferedReader != null) {
+                    try {
+                        bufferedReader.close();
+                    } catch (IOException e) {
+                        LogUtil.e(Log.getStackTraceString(e));
+                    }
+                }
+            }
+
+            return isSuccess;
+        }
+
+        @SuppressLint("SetTextI18n")
+        @Override
+        protected void onPostExecute(Boolean aBoolean) {
+            super.onPostExecute(aBoolean);
+
+            loadingDialog.dismiss();
+            loadingDialog = null;
+
+            if (aBoolean) {
+                MaterialDialog.Builder builder = new MaterialDialog.Builder(mContext)
+                        .typeface(
+                                TypefaceHelper.getMedium(mContext),
+                                TypefaceHelper.getRegular(mContext))
+                        .customView(R.layout.fragment_update, false);
+
+                if (isUpdateAvailable) {
+                    builder
+                            .positiveText(R.string.update)
+                            .negativeText(R.string.close)
+                            .onPositive((dialog, which) -> {
+                                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(updateUrl));
+                                intent.addFlags(Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT);
+                                mContext.startActivity(intent);
+                            });
+                } else {
+                    builder.positiveText(R.string.close);
+                }
+
+                MaterialDialog dialog = builder.build();
+
+                TextView changelogVersion = (TextView) dialog.findViewById(R.id.changelog_version);
+                ListView mChangelogList = (ListView) dialog.findViewById(R.id.changelog_list);
+
+                if (isUpdateAvailable) {
+                    changelogVersion.setText(
+                            mContext.getResources().getString(R.string.update_available) + "\n" +
+                                    mContext.getResources().getString(R.string.changelog_version) + " " +
+                                    latestVersion);
+                    mChangelogList.setAdapter(new ChangelogAdapter(mContext, changelog));
+                } else {
+                    changelogVersion.setText(mContext.getResources().getString(R.string.no_update_available));
+                    mChangelogList.setVisibility(View.GONE);
+                }
+
+                dialog.show();
+            } else {
+                new MaterialDialog.Builder(mContext)
+                        .typeface(
+                                TypefaceHelper.getMedium(mContext),
+                                TypefaceHelper.getRegular(mContext))
+                        .content(R.string.unable_to_load_config)
+                        .positiveText(R.string.close)
+                        .build()
+                        .show();
             }
         }
     }
@@ -452,12 +567,14 @@ public class HomeAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         private final TextView subtitle;
         private final AutofitTextView autoFitTitle;
         private final LinearLayout container;
+        private final ProgressBar progressBar;
 
         ContentViewHolder(View itemView) {
             super(itemView);
             container = itemView.findViewById(R.id.container);
             autoFitTitle = itemView.findViewById(R.id.title);
             subtitle = itemView.findViewById(R.id.subtitle);
+            progressBar = itemView.findViewById(R.id.progressBar);
 
             MaterialCardView card = itemView.findViewById(R.id.card);
             if (CandyBarApplication.getConfiguration().getHomeGrid() == CandyBarApplication.GridStyle.FLAT) {
@@ -467,7 +584,6 @@ public class HomeAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                     int margin = mContext.getResources().getDimensionPixelSize(R.dimen.card_margin);
                     StaggeredGridLayoutManager.LayoutParams params = (StaggeredGridLayoutManager.LayoutParams) card.getLayoutParams();
                     params.setMargins(0, 0, margin, margin);
-
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
                         params.setMarginEnd(margin);
                     }
@@ -532,6 +648,8 @@ public class HomeAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         private final TextView missedApps;
         private final LinearLayout container;
         private final ProgressBar progress;
+        private final ProgressBar progressBar;
+        private final LinearLayout dataContainer;
 
         IconRequestViewHolder(View itemView) {
             super(itemView);
@@ -541,6 +659,8 @@ public class HomeAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             themedApps = itemView.findViewById(R.id.themed_apps);
             progress = itemView.findViewById(R.id.progress);
             container = itemView.findViewById(R.id.container);
+            progressBar = itemView.findViewById(R.id.progressBar);
+            dataContainer = itemView.findViewById(R.id.dataContainer);
 
             MaterialCardView card = itemView.findViewById(R.id.card);
             if (CandyBarApplication.getConfiguration().getHomeGrid() == CandyBarApplication.GridStyle.FLAT) {
@@ -550,7 +670,6 @@ public class HomeAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                     int margin = mContext.getResources().getDimensionPixelSize(R.dimen.card_margin);
                     StaggeredGridLayoutManager.LayoutParams params = (StaggeredGridLayoutManager.LayoutParams) card.getLayoutParams();
                     params.setMargins(0, 0, margin, margin);
-
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
                         params.setMarginEnd(margin);
                     }
@@ -609,7 +728,6 @@ public class HomeAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                     int margin = mContext.getResources().getDimensionPixelSize(R.dimen.card_margin);
                     StaggeredGridLayoutManager.LayoutParams params = (StaggeredGridLayoutManager.LayoutParams) card.getLayoutParams();
                     params.setMargins(0, 0, margin, margin);
-
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
                         params.setMarginEnd(margin);
                     }
@@ -675,7 +793,6 @@ public class HomeAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                     int margin = mContext.getResources().getDimensionPixelSize(R.dimen.card_margin);
                     StaggeredGridLayoutManager.LayoutParams params = (StaggeredGridLayoutManager.LayoutParams) card.getLayoutParams();
                     params.setMargins(0, 0, margin, margin);
-
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
                         params.setMarginEnd(margin);
                     }

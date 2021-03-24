@@ -15,7 +15,9 @@ import java.util.Locale;
 import candybar.lib.R;
 import candybar.lib.applications.CandyBarApplication;
 import candybar.lib.helpers.LocaleHelper;
+import candybar.lib.helpers.ThemeHelper;
 import candybar.lib.items.Language;
+import candybar.lib.items.Theme;
 import sarsamurmu.adaptiveicon.AdaptiveIcon;
 
 /*
@@ -43,7 +45,7 @@ public class Preferences {
     private static final String PREFERENCES_NAME = "candybar_preferences";
 
     private static final String KEY_FIRST_RUN = "first_run";
-    private static final String KEY_DARK_THEME = "dark_theme";
+    private static final String KEY_THEME = "theme";
     private static final String KEY_ICON_SHAPE = "icon_shape";
     private static final String KEY_APP_VERSION = "app_version";
     private static final String KEY_WIFI_ONLY = "wifi_only";
@@ -152,15 +154,12 @@ public class Preferences {
         getSharedPreferences().edit().putBoolean(KEY_WALLPAPER_PREVIEW_INTRO, bool).apply();
     }
 
-    public boolean isDarkTheme() {
-        boolean useDarkTheme = mContext.getResources().getBoolean(R.bool.use_dark_theme);
-        boolean isThemingEnabled = CandyBarApplication.getConfiguration().isDashboardThemingEnabled();
-        if (!isThemingEnabled) return useDarkTheme;
-        return getSharedPreferences().getBoolean(KEY_DARK_THEME, useDarkTheme);
+    public Theme getTheme() {
+        return Theme.values()[getSharedPreferences().getInt(KEY_THEME, ThemeHelper.getDefaultTheme(mContext).ordinal())];
     }
 
-    public void setDarkTheme(boolean bool) {
-        getSharedPreferences().edit().putBoolean(KEY_DARK_THEME, bool).apply();
+    public void setTheme(Theme theme) {
+        getSharedPreferences().edit().putInt(KEY_THEME, theme.ordinal()).apply();
     }
 
     public boolean isToolbarShadowEnabled() {
@@ -300,8 +299,7 @@ public class Preferences {
     public boolean isNewVersion() {
         int version = 0;
         try {
-            version = mContext.getPackageManager().getPackageInfo(
-                    mContext.getPackageName(), 0).versionCode;
+            version = mContext.getPackageManager().getPackageInfo(mContext.getPackageName(), 0).versionCode;
         } catch (PackageManager.NameNotFoundException ignored) {
         }
         if (version > getVersion()) {

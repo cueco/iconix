@@ -57,6 +57,7 @@ public class ReportBugsHelper {
     private static final String BROKEN_DRAWABLES = "broken_drawables.xml";
     private static final String ACTIVITY_LIST = "activity_list.xml";
     private static final String CRASHLOG = "crashlog.txt";
+    private static String UTF8 = "UTF8";
 
     public static void prepareReportBugs(@NonNull Context context) {
         MaterialDialog.Builder builder = new MaterialDialog.Builder(context);
@@ -91,14 +92,14 @@ public class ReportBugsHelper {
             HashMap<String, String> activities = RequestHelper.getAppFilter(context, RequestHelper.Key.ACTIVITY);
             File brokenAppFilter = new File(context.getCacheDir(), BROKEN_APPFILTER);
             Writer writer = new BufferedWriter(new OutputStreamWriter(
-                    new FileOutputStream(brokenAppFilter), "UTF8"));
+                    new FileOutputStream(brokenAppFilter), UTF8));
 
             boolean first = true;
             for (Map.Entry<String, String> entry : activities.entrySet()) {
                 if (first) {
                     first = false;
                     writer.append("<!-- BROKEN APPFILTER -->")
-                            .append("\n").append("<!-- Broken appfilter will check for activities that included in appfilter but doesn\'t have a drawable")
+                            .append("\n").append("<!-- Broken appfilter will check for activities that included in appfilter but doesn't have a drawable")
                             .append("\n").append("* ").append("The reason could because misnamed drawable or the drawable not copied to the project -->")
                             .append("\n\n\n");
                 }
@@ -131,7 +132,7 @@ public class ReportBugsHelper {
 
             File brokenDrawables = new File(context.getCacheDir(), BROKEN_DRAWABLES);
             Writer writer = new BufferedWriter(new OutputStreamWriter(
-                    new FileOutputStream(brokenDrawables), "UTF8"));
+                    new FileOutputStream(brokenDrawables), UTF8));
 
             for (Icon icon : iconList) {
                 if (CandyBarApplication.getConfiguration().isShowTabAllIcons()) {
@@ -175,7 +176,7 @@ public class ReportBugsHelper {
         try {
             File activityList = new File(context.getCacheDir(), ACTIVITY_LIST);
             Writer out = new BufferedWriter(new OutputStreamWriter(
-                    new FileOutputStream(activityList), "UTF8"));
+                    new FileOutputStream(activityList), UTF8));
 
             Intent intent = new Intent(Intent.ACTION_MAIN);
             intent.addCategory(Intent.CATEGORY_LAUNCHER);
@@ -221,7 +222,7 @@ public class ReportBugsHelper {
             File crashLog = new File(context.getCacheDir(), CRASHLOG);
             String deviceInfo = DeviceHelper.getDeviceInfoForCrashReport(context);
             Writer out = new BufferedWriter(new OutputStreamWriter(
-                    new FileOutputStream(crashLog), "UTF8"));
+                    new FileOutputStream(crashLog), UTF8));
             out.append(deviceInfo).append(stackTrace);
             out.flush();
             out.close();

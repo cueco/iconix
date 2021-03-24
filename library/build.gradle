@@ -1,7 +1,4 @@
 apply plugin: 'com.android.library'
-apply plugin: 'com.github.dcendents.android-maven'
-
-group = 'com.github.zixpo'
 
 /*
  * CandyBar - Material Dashboard
@@ -31,13 +28,12 @@ buildscript {
 
 android {
     compileSdkVersion rootProject.ext.CompileSdk
-    buildToolsVersion rootProject.ext.BuildTools
 
     defaultConfig {
         minSdkVersion rootProject.ext.MinSdk
         targetSdkVersion rootProject.ext.TargetSdk
-        versionCode 356
-        versionName "3.5.0-beta.6.5"
+        versionCode rootProject.ext.VersionCode
+        versionName rootProject.ext.VersionName
         vectorDrawables.useSupportLibrary true
         multiDexEnabled true
     }
@@ -67,18 +63,17 @@ android {
 }
 
 dependencies {
-    implementation project (':extLibs:PreLollipopTransitions')
-    implementation project (':extLibs:uil')
+    implementation project(':extLibs:PreLollipopTransitions')
 
     api 'androidx.annotation:annotation:1.1.0'
-    api 'androidx.appcompat:appcompat:1.1.0'
-    api 'com.google.android.apps.muzei:muzei-api:3.1.0'
+    api 'androidx.appcompat:appcompat:1.2.0'
+    api 'com.google.android.apps.muzei:muzei-api:3.2.0'
     api 'androidx.multidex:multidex:2.0.1'
 
-    implementation "androidx.work:work-runtime:2.2.0-rc01"
+    implementation 'androidx.work:work-runtime:2.4.0'
 
-    implementation 'androidx.recyclerview:recyclerview:1.0.0'
-    implementation 'com.google.android.material:material:1.0.0'
+    implementation 'androidx.recyclerview:recyclerview:1.1.0'
+    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
     implementation 'androidx.palette:palette:1.0.0'
 
     implementation 'com.bluelinelabs:logansquare:1.3.7'
@@ -86,26 +81,27 @@ dependencies {
 
     implementation 'io.github.inflationx:calligraphy3:3.1.1'
     implementation 'io.github.inflationx:viewpump:2.0.3'
+    implementation 'com.squareup.okhttp3:okhttp:4.3.0'
     implementation 'com.afollestad.material-dialogs:core:0.9.6.0'
     implementation 'com.afollestad.material-dialogs:commons:0.9.6.0'
-    implementation 'com.github.pluscubed:recycler-fast-scroll:0.3.2@aar'
     implementation 'com.mikhaellopez:circularimageview:3.0.2'
     implementation 'com.anjlab.android.iab.v3:library:1.0.44'
     implementation 'com.github.chrisbanes:PhotoView:1.3.1'
-    implementation 'com.github.danimahardhika:DrawMe:4a672e78fc'
     implementation 'org.sufficientlysecure:html-textview:3.5'
     implementation 'me.grantland:autofittextview:0.2.1'
     implementation 'com.github.KeepSafe:TapTargetView:1.9.1'
-    implementation 'com.github.javiersantos:AppUpdater:2.7'
-    implementation 'com.github.sarsamurmu:AdaptiveIconBitmap:ef93e01193'
+    implementation 'com.github.sarsamurmu:AdaptiveIconBitmap:bae8007499'
+    implementation 'com.github.zixpo:recycler-fast-scroll:6add4dff39'
+
+    implementation 'com.github.bumptech.glide:glide:4.11.0'
+    annotationProcessor 'com.github.bumptech.glide:compiler:4.11.0'
 
     implementation 'com.github.danimahardhika:cafebar:1.3.2'
-    implementation('com.github.danimahardhika.android-helpers:core:-SNAPSHOT') {
-        changing = true
-    }
+    implementation 'com.github.danimahardhika.android-helpers:core:-SNAPSHOT'
     implementation 'com.github.danimahardhika.android-helpers:animation:0.1.0'
     implementation 'com.github.danimahardhika.android-helpers:license:0.1.0'
     implementation 'com.github.danimahardhika.android-helpers:permission:0.1.0'
+    implementation 'com.github.danimahardhika:DrawMe:4a672e78fc'
 }
 
 configurations.all {

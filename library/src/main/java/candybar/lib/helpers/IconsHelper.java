@@ -13,12 +13,14 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.request.target.CustomTarget;
+import com.bumptech.glide.request.transition.Transition;
 import com.danimahardhika.android.helpers.core.utils.LogUtil;
-import com.nostra13.universalimageloader.core.ImageLoader;
 
 import org.xmlpull.v1.XmlPullParser;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
@@ -30,9 +32,7 @@ import candybar.lib.activities.CandyBarMainActivity;
 import candybar.lib.applications.CandyBarApplication;
 import candybar.lib.fragments.dialog.IconPreviewFragment;
 import candybar.lib.items.Icon;
-import candybar.lib.preferences.Preferences;
 import candybar.lib.utils.AlphanumComparator;
-import candybar.lib.utils.ImageConfig;
 
 import static candybar.lib.helpers.DrawableHelper.getRightIcon;
 import static com.danimahardhika.android.helpers.core.DrawableHelper.getResourceId;
@@ -159,42 +159,67 @@ public class IconsHelper {
 
     public static void selectIcon(@NonNull Context context, int action, Icon icon) {
         if (action == IntentHelper.ICON_PICKER) {
-            Intent intent = new Intent();
-            ImageLoader.setShape(Preferences.get(context).getIconShape());
-            Bitmap bitmap = ImageLoader.getInstance().loadImageSync(
-                    "drawable://" + icon.getRes(), ImageConfig.getRawImageOptions().build());
+            Glide.with(context)
+                    .asBitmap()
+                    .load("drawable://" + icon.getRes())
+                    .skipMemoryCache(true)
+                    .diskCacheStrategy(DiskCacheStrategy.NONE)
+                    .into(new CustomTarget<Bitmap>() {
+                        @Override
+                        public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
+                            Intent intent = new Intent();
+                            intent.putExtra("icon", resource);
+                            ((AppCompatActivity) context).setResult(resource != null ?
+                                    Activity.RESULT_OK : Activity.RESULT_CANCELED, intent);
+                            ((AppCompatActivity) context).finish();
+                        }
 
-            intent.putExtra("icon", bitmap);
-            ((AppCompatActivity) context).setResult(bitmap != null ?
-                    Activity.RESULT_OK : Activity.RESULT_CANCELED, intent);
-            ((AppCompatActivity) context).finish();
+                        @Override
+                        public void onLoadCleared(@Nullable Drawable placeholder) {
+                            // Do nothing
+                        }
+                    });
         } else if (action == IntentHelper.IMAGE_PICKER) {
-            Intent intent = new Intent();
-            ImageLoader.setShape(Preferences.get(context).getIconShape());
-            Bitmap bitmap = ImageLoader.getInstance().loadImageSync(
-                    "drawable://" + icon.getRes(), ImageConfig.getRawImageOptions().build());
-            if (bitmap != null) {
-                File file = new File(context.getCacheDir(), icon.getTitle() + ".png");
-                FileOutputStream outStream;
-                try {
-                    outStream = new FileOutputStream(file);
-                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, outStream);
-                    outStream.flush();
-                    outStream.close();
 
-                    Uri uri = getUriFromFile(context, context.getPackageName(), file);
-                    if (uri == null) uri = Uri.fromFile(file);
-                    intent.putExtra(Intent.EXTRA_STREAM, uri);
-                    intent.setData(uri);
-                    intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                } catch (Exception | OutOfMemoryError e) {
-                    LogUtil.e(Log.getStackTraceString(e));
-                }
-                intent.putExtra("return-data", false);
-            }
-            ((AppCompatActivity) context).setResult(bitmap != null ?
-                    Activity.RESULT_OK : Activity.RESULT_CANCELED, intent);
-            ((AppCompatActivity) context).finish();
+            Glide.with(context)
+                    .asBitmap()
+                    .load("drawable://" + icon.getRes())
+                    .skipMemoryCache(true)
+                    .diskCacheStrategy(DiskCacheStrategy.NONE)
+                    .into(new CustomTarget<Bitmap>() {
+                        @Override
+                        public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
+                            Intent intent = new Intent();
+
+                            if (resource != null) {
+                                File file = new File(context.getCacheDir(), icon.getTitle() + ".png");
+                                FileOutputStream outStream;
+                                try {
+                                    outStream = new FileOutputStream(file);
+                                    resource.compress(Bitmap.CompressFormat.PNG, 100, outStream);
+                                    outStream.flush();
+                                    outStream.close();
+
+                                    Uri uri = getUriFromFile(context, context.getPackageName(), file);
+                                    if (uri == null) uri = Uri.fromFile(file);
+                                    intent.putExtra(Intent.EXTRA_STREAM, uri);
+                                    intent.setData(uri);
+                                    intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                                } catch (Exception | OutOfMemoryError e) {
+                                    LogUtil.e(Log.getStackTraceString(e));
+                                }
+                                intent.putExtra("return-data", false);
+                            }
+                            ((AppCompatActivity) context).setResult(resource != null ?
+                                    Activity.RESULT_OK : Activity.RESULT_CANCELED, intent);
+                            ((AppCompatActivity) context).finish();
+                        }
+
+                        @Override
+                        public void onLoadCleared(@Nullable Drawable placeholder) {
+                            // Do nothing
+                        }
+                    });
         } else {
             IconPreviewFragment.showIconPreview(((AppCompatActivity) context)
                             .getSupportFragmentManager(),
@@ -204,7 +229,7 @@ public class IconsHelper {
 
     @Nullable
     public static String saveIcon(List<String> files, File directory, Drawable drawable, String name) {
-        String fileName = name.toLowerCase().replaceAll(" ", "_") + ".png";
+        String fileName = name + ".png";
         File file = new File(directory, fileName);
         try {
             Thread.sleep(2);
@@ -218,26 +243,12 @@ public class IconsHelper {
             }
 
             FileOutputStream outStream = new FileOutputStream(file);
-            // Disabled Because of OutOfMemory
-            //bitmap = Bitmap.createScaledBitmap(bitmap, 192, 192, false);
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, outStream);
             outStream.flush();
             outStream.close();
             return directory.toString() + "/" + fileName;
         } catch (Exception | OutOfMemoryError e) {
             LogUtil.e(Log.getStackTraceString(e));
-        }
-        return null;
-    }
-
-    @Nullable
-    public static byte[] getByteFromDrawable(@Nullable Drawable drawable) {
-        if (drawable != null) {
-            Bitmap bitmap = getRightIcon(drawable);
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            bitmap.compress(Bitmap.CompressFormat.PNG, 0, baos);
-            byte[] data = baos.toByteArray();
-            return data;
         }
         return null;
     }

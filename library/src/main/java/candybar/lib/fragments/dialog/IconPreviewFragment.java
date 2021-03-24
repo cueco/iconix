@@ -13,12 +13,13 @@ import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
 import com.afollestad.materialdialogs.MaterialDialog;
-import com.nostra13.universalimageloader.core.ImageLoader;
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
 
 import candybar.lib.R;
 import candybar.lib.helpers.IconsHelper;
 import candybar.lib.helpers.TypefaceHelper;
-import candybar.lib.utils.ImageConfig;
 
 /*
  * CandyBar - Material Dashboard
@@ -84,13 +85,14 @@ public class IconPreviewFragment extends DialogFragment {
     @NonNull
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
-        MaterialDialog.Builder builder = new MaterialDialog.Builder(getActivity());
-        builder.customView(R.layout.fragment_icon_preview, false);
-        builder.typeface(
-                TypefaceHelper.getMedium(getActivity()),
-                TypefaceHelper.getRegular(getActivity()));
-        builder.positiveText(R.string.close);
-        MaterialDialog dialog = builder.build();
+        MaterialDialog dialog = new MaterialDialog.Builder(getActivity())
+                .customView(R.layout.fragment_icon_preview, false)
+                .typeface(
+                        TypefaceHelper.getMedium(getActivity()),
+                        TypefaceHelper.getRegular(getActivity()))
+                .positiveText(R.string.close)
+                .build();
+
         dialog.show();
 
         mName = (TextView) dialog.findViewById(R.id.name);
@@ -113,8 +115,13 @@ public class IconPreviewFragment extends DialogFragment {
         }
 
         mName.setText(mIconName);
-        ImageLoader.getInstance().displayImage("drawable://" + mIconId, mIcon,
-                ImageConfig.getDefaultImageOptions(false));
+
+        Glide.with(this)
+                .load("drawable://" + mIconId)
+                .transition(DrawableTransitionOptions.withCrossFade(300))
+                .skipMemoryCache(true)
+                .diskCacheStrategy(DiskCacheStrategy.NONE)
+                .into(mIcon);
     }
 
     @Override

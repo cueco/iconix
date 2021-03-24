@@ -12,7 +12,7 @@
         <item>GO EX</item>                                  <!-- 7 -->
         <item>Holo</item>                                   <!-- 8 -->
         <item>Holo HD</item>                                <!-- 9 -->
-        <item>Lawnchair 2</item>                            <!-- 10 -->
+        <item>Lawnchair</item>                              <!-- 10 -->
         <item>LG Home</item>                                <!-- 11 -->
         <item>Lucid</item>                                  <!-- 12 -->
         <item>M</item>                                      <!-- 13 -->
@@ -29,8 +29,11 @@
         <item>Evie</item>                                   <!-- 24 -->
         <item>POCO</item>                                   <!-- 25 -->
         <item>Posidon</item>                                <!-- 26 -->
-        <item>Lawnchair</item>                              <!-- 27 -->
-        <item>Microsoft</item>                              <!-- 28 -->
+        <item>Microsoft</item>                              <!-- 27 -->
+        <item>BlackBerry</item>                             <!-- 28 -->
+        <item>Flick</item>                                  <!-- 29 -->
+        <item>Square</item>                                 <!-- 30 -->
+        <item>Niagara</item>                                <!-- 31 -->
     </string-array>
 
     <array name="launcher_icons">
@@ -44,7 +47,7 @@
         <item>@drawable/ic_launcher_go</item>               <!-- 7 -->
         <item>@drawable/ic_launcher_holo</item>             <!-- 8 -->
         <item>@drawable/ic_launcher_holohd</item>           <!-- 9 -->
-        <item>@drawable/ic_launcher_lawnchair_v2</item>     <!-- 10 -->
+        <item>@drawable/ic_launcher_lawnchair</item>        <!-- 10 -->
         <item>@drawable/ic_launcher_lg</item>               <!-- 11 -->
         <item>@drawable/ic_launcher_lucid</item>            <!-- 12 -->
         <item>@drawable/ic_launcher_m</item>                <!-- 13 -->
@@ -61,8 +64,11 @@
         <item>@drawable/ic_launcher_evie</item>             <!-- 24 -->
         <item>@drawable/ic_launcher_poco</item>             <!-- 25 -->
         <item>@drawable/ic_launcher_posidon</item>          <!-- 26 -->
-        <item>@drawable/ic_launcher_lawnchair</item>        <!-- 27 -->
-        <item>@drawable/ic_launcher_microsoft</item>        <!-- 28 -->
+        <item>@drawable/ic_launcher_microsoft</item>        <!-- 27 -->
+        <item>@drawable/ic_launcher_blackberry</item>       <!-- 28 -->
+        <item>@drawable/ic_launcher_flick</item>            <!-- 29 -->
+        <item>@drawable/ic_launcher_square</item>           <!-- 30 -->
+        <item>@drawable/ic_launcher_niagara</item>          <!-- 31 -->
     </array>
 
     <!-- Launcher Packages -->
@@ -94,8 +100,11 @@
         <item>is.shortcut</item>                            <!-- 24 -->
         <item>com.mi.android.globallauncher</item>          <!-- 25 -->
         <item>posidon.launcher</item>                       <!-- 26 -->
-        <item>ch.deletescape.lawnchair.plah</item>          <!-- 27 -->
-        <item>com.microsoft.launcher</item>                 <!-- 28 -->
+        <item>com.microsoft.launcher</item>                 <!-- 27 -->
+        <item>com.blackberry.blackberrylauncher</item>      <!-- 28 -->
+        <item>com.universallauncher.universallauncher</item><!-- 29 -->
+        <item>com.ss.squarehome2</item>                     <!-- 30 -->
+        <item>bitpit.launcher</item>                        <!-- 31 -->
     </string-array>
 
     <string-array name="launcher_packages_2">
@@ -109,7 +118,7 @@
         <item>none</item>                                   <!-- 7 -->
         <item>none</item>                                   <!-- 8 -->
         <item>none</item>                                   <!-- 9 -->
-        <item>none</item>                                   <!-- 10 -->
+        <item>ch.deletescape.lawnchair.plah</item>          <!-- 10 -->
         <item>com.lge.launcher3</item>                      <!-- 11 -->
         <item>none</item>                                   <!-- 12 -->
         <item>none</item>                                   <!-- 13 -->
@@ -128,6 +137,9 @@
         <item>none</item>                                   <!-- 26 -->
         <item>none</item>                                   <!-- 27 -->
         <item>none</item>                                   <!-- 28 -->
+        <item>none</item>                                   <!-- 29 -->
+        <item>none</item>                                   <!-- 30 -->
+        <item>none</item>                                   <!-- 31 -->
     </string-array>
 
     <string-array name="launcher_packages_3">
@@ -160,6 +172,9 @@
         <item>none</item>                                   <!-- 26 -->
         <item>none</item>                                   <!-- 27 -->
         <item>none</item>                                   <!-- 28 -->
+        <item>none</item>                                   <!-- 29 -->
+        <item>none</item>                                   <!-- 30 -->
+        <item>none</item>                                   <!-- 31 -->
     </string-array>
 
 </resources>

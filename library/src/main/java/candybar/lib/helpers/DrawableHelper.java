@@ -1,6 +1,5 @@
 package candybar.lib.helpers;
 
-import android.annotation.SuppressLint;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -44,7 +43,6 @@ import sarsamurmu.adaptiveicon.AdaptiveIcon;
  * limitations under the License.
  */
 
-@SuppressLint("NewApi")
 public class DrawableHelper {
 
     public static Drawable getAppIcon(@NonNull Context context, ResolveInfo info) {
@@ -56,41 +54,42 @@ public class DrawableHelper {
     }
 
     @Nullable
-    public static Drawable getReqIcon(@NonNull Context context, String fullComponentName) {
+    public static Drawable getReqIcon(@NonNull Context context, String componentNameStr) {
         PackageManager packageManager = context.getPackageManager();
 
-        int slashIndex = fullComponentName.indexOf("/");
-        String activityName = fullComponentName.substring(slashIndex).replace("/", "");
-        String packageName = fullComponentName.replace("/" + activityName, "");
+        int slashIndex = componentNameStr.indexOf("/");
+        String packageName = componentNameStr.substring(0, slashIndex);
+        String activityName = componentNameStr.substring(slashIndex + 1);
         ComponentName componentName = new ComponentName(packageName, activityName);
 
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            // Load Adaptive Icons if found
+            // Load Adaptive icon if possible
             Intent intent = new Intent();
             intent.setComponent(componentName);
             ResolveInfo resolveInfo = packageManager.resolveActivity(intent, 0);
-            Drawable normalDrawable = resolveInfo.loadIcon(packageManager);
-
-            if ((normalDrawable != null) && (normalDrawable instanceof AdaptiveIconDrawable))
-                return normalDrawable;
+            if (resolveInfo != null) {
+                Drawable adaptiveDrawable = resolveInfo.loadIcon(packageManager);
+                if (adaptiveDrawable instanceof AdaptiveIconDrawable) return adaptiveDrawable;
+            }
         }
 
-        // Fallback to legacy icon if AdaptiveIcon not found
+        // Fallback to legacy icon if AdaptiveIcon is not found
         try {
-            Drawable drawable;
-            int density = DisplayMetrics.DENSITY_XXHIGH;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-                density = DisplayMetrics.DENSITY_XXXHIGH;
-            }
-
             ApplicationInfo appInfo = packageManager.getApplicationInfo(packageName, PackageManager.GET_META_DATA);
             Resources appResources = packageManager.getResourcesForApplication(appInfo);
 
-            drawable = ResourcesCompat.getDrawableForDensity(
-                    appResources, appInfo.icon, density, null);
+            int density = DisplayMetrics.DENSITY_XHIGH;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+                density = DisplayMetrics.DENSITY_XXHIGH;
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+                density = DisplayMetrics.DENSITY_XXXHIGH;
+            }
+            Drawable drawable = ResourcesCompat.getDrawableForDensity(appResources, appInfo.icon,
+                    density, null);
 
             if (drawable != null) return drawable;
-            Log.e("CandyBar", "DrawableHelper - drawable is null");
+            LogUtil.e("DrawableHelper - drawable is null");
         } catch (Exception | OutOfMemoryError e) {
             LogUtil.e(Log.getStackTraceString(e));
         }
@@ -99,19 +98,14 @@ public class DrawableHelper {
 
     public static Bitmap getRightIcon(Drawable drawable) {
         if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.O) {
-            Log.d("CandyBar", "Made Normal Icon in Low SDK");
             return ((BitmapDrawable) drawable).getBitmap();
         } else {
             if (drawable instanceof BitmapDrawable) {
-                Log.d("CandyBar", "Made Normal Icon in High SDK");
                 return ((BitmapDrawable) drawable).getBitmap();
             } else if (drawable instanceof AdaptiveIconDrawable) {
-                AdaptiveIconDrawable adaptiveID = ((AdaptiveIconDrawable) drawable);
-                AdaptiveIcon adaptiveIcon = new AdaptiveIcon();
-                adaptiveIcon.setDrawables(adaptiveID.getForeground(), adaptiveID.getBackground());
-                Bitmap iconBitmap = adaptiveIcon.render();
-                Log.d("CandyBar", "Made Adaptive Icon in High SDK");
-                return iconBitmap;
+                return new AdaptiveIcon()
+                        .setDrawable((AdaptiveIconDrawable) drawable)
+                        .render();
             }
         }
         return null;

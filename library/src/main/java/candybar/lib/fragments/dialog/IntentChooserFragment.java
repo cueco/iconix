@@ -33,7 +33,7 @@ import java.util.Collections;
 import java.util.List;
 
 import candybar.lib.R;
-import candybar.lib.adapters.IntentAdapter;
+import candybar.lib.adapters.dialog.IntentAdapter;
 import candybar.lib.applications.CandyBarApplication;
 import candybar.lib.fragments.RequestFragment;
 import candybar.lib.helpers.TypefaceHelper;
@@ -169,9 +169,6 @@ public class IntentChooserFragment extends DialogFragment {
             while (!isCancelled()) {
                 try {
                     Thread.sleep(1);
-                    /*
-                    Intent intent = new Intent(Intent.ACTION_SENDTO, Uri.fromParts("mailto", getResources().getString(R.string.dev_email), null));
-                    */
 
                     boolean nonMailingAppSend = getResources().getBoolean(R.bool.enable_non_mail_app_request);
                     Intent intent;

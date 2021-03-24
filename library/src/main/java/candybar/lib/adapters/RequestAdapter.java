@@ -20,15 +20,15 @@ import androidx.appcompat.widget.AppCompatCheckBox;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.StaggeredGridLayoutManager;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
 import com.danimahardhika.android.helpers.core.ColorHelper;
 import com.danimahardhika.android.helpers.core.DrawableHelper;
 import com.danimahardhika.android.helpers.core.utils.LogUtil;
 import com.google.android.material.card.MaterialCardView;
-import com.nostra13.universalimageloader.core.DisplayImageOptions;
-import com.nostra13.universalimageloader.core.ImageLoader;
-import com.nostra13.universalimageloader.core.assist.ImageSize;
-import com.nostra13.universalimageloader.core.display.FadeInBitmapDisplayer;
-import com.nostra13.universalimageloader.core.imageaware.ImageViewAware;
+
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,7 +37,6 @@ import candybar.lib.R;
 import candybar.lib.applications.CandyBarApplication;
 import candybar.lib.items.Request;
 import candybar.lib.preferences.Preferences;
-import candybar.lib.utils.ImageConfig;
 import candybar.lib.utils.listeners.RequestListener;
 
 /*
@@ -63,7 +62,6 @@ public class RequestAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     private final Context mContext;
     private final List<Request> mRequests;
     private SparseBooleanArray mSelectedItems;
-    private final DisplayImageOptions.Builder mOptions;
 
     private final int mTextColorSecondary;
     private final int mTextColorAccent;
@@ -88,17 +86,11 @@ public class RequestAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         mShowShadow = (spanCount == 1);
         mShowPremiumRequest = Preferences.get(mContext).isPremiumRequestEnabled();
         mShowRegularRequest = Preferences.get(mContext).isRegularRequestLimit();
-
-        mOptions = ImageConfig.getRawDefaultImageOptions();
-        mOptions.resetViewBeforeLoading(true);
-        mOptions.cacheInMemory(true);
-        mOptions.cacheOnDisk(false);
-        mOptions.showImageOnFail(R.drawable.ic_app_default);
-        mOptions.displayer(new FadeInBitmapDisplayer(700));
     }
 
+    @NotNull
     @Override
-    public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    public RecyclerView.ViewHolder onCreateViewHolder(@NotNull ViewGroup parent, int viewType) {
         if (viewType == TYPE_HEADER) {
             View view = LayoutInflater.from(mContext).inflate(
                     R.layout.fragment_request_item_header, parent, false);
@@ -124,7 +116,7 @@ public class RequestAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     }
 
     @Override
-    public void onViewRecycled(RecyclerView.ViewHolder holder) {
+    public void onViewRecycled(@NotNull RecyclerView.ViewHolder holder) {
         super.onViewRecycled(holder);
         if (holder.getItemViewType() == TYPE_CONTENT) {
             ContentViewHolder contentViewHolder = (ContentViewHolder) holder;
@@ -171,9 +163,6 @@ public class RequestAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             }
 
             if (Preferences.get(mContext).isRegularRequestLimit()) {
-                //HeaderViewHolder.regContent.setVisibility(View.GONE);
-                //HeaderViewHolder.regContainer.setVisibility(View.VISIBLE);
-
                 int total = mContext.getResources().getInteger(R.integer.icon_request_limit);
                 int used = Preferences.get(mContext).getRegularRequestUsed();
                 int available = total - used;
@@ -193,13 +182,20 @@ public class RequestAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             } else {
                 HeaderViewHolder.regWholeContainer.setVisibility(View.GONE);
             }
+
+            if (!mContext.getResources().getBoolean(R.bool.enable_icon_request)) {
+                HeaderViewHolder.regWholeContainer.setVisibility(View.GONE);
+            }
         } else if (holder.getItemViewType() == TYPE_CONTENT) {
             int finalPosition = mShowPremiumRequest ? position - 1 : position;
             ContentViewHolder contentViewHolder = (ContentViewHolder) holder;
 
-            ImageLoader.getInstance().displayImage("package://" + mRequests.get(finalPosition).getActivity(),
-                    new ImageViewAware(contentViewHolder.icon), mOptions.build(),
-                    new ImageSize(114, 114), null, null);
+            Glide.with(mContext)
+                    .load("package://" + mRequests.get(finalPosition).getActivity())
+                    .override(272)
+                    .transition(DrawableTransitionOptions.withCrossFade(300))
+                    .diskCacheStrategy(DiskCacheStrategy.NONE)
+                    .into(contentViewHolder.icon);
 
             contentViewHolder.title.setText(mRequests.get(finalPosition).getName());
 
@@ -288,7 +284,6 @@ public class RequestAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                     int margin = mContext.getResources().getDimensionPixelSize(R.dimen.card_margin);
                     StaggeredGridLayoutManager.LayoutParams params = (StaggeredGridLayoutManager.LayoutParams) card.getLayoutParams();
                     params.setMargins(0, 0, margin, margin);
-
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
                         params.setMarginEnd(margin);
                     }
@@ -376,7 +371,6 @@ public class RequestAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                     int margin = mContext.getResources().getDimensionPixelSize(R.dimen.card_margin);
                     StaggeredGridLayoutManager.LayoutParams params = (StaggeredGridLayoutManager.LayoutParams) card.getLayoutParams();
                     params.setMargins(0, 0, margin, margin);
-
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
                         params.setMarginEnd(margin);
                     }

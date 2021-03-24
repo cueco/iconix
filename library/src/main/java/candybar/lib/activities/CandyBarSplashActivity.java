@@ -11,8 +11,11 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.danimahardhika.android.helpers.core.utils.LogUtil;
-import com.nostra13.universalimageloader.core.ImageLoader;
+
+import org.jetbrains.annotations.NotNull;
 
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
@@ -22,8 +25,6 @@ import java.util.List;
 import java.util.Map;
 
 import candybar.lib.R;
-import candybar.lib.activities.callbacks.SplashScreenCallback;
-import candybar.lib.activities.configurations.SplashScreenConfiguration;
 import candybar.lib.applications.CandyBarApplication;
 import candybar.lib.databases.Database;
 import candybar.lib.helpers.JsonHelper;
@@ -49,19 +50,20 @@ import io.github.inflationx.viewpump.ViewPumpContextWrapper;
  * limitations under the License.
  */
 
-public abstract class CandyBarSplashActivity extends AppCompatActivity implements SplashScreenCallback {
+public abstract class CandyBarSplashActivity extends AppCompatActivity {
 
     private AsyncTask mSplashScreenLoader;
     private AsyncTask mCloudWallpapersLoader;
-    private SplashScreenConfiguration mConfig;
+
+    @NotNull
+    public abstract Class<?> getMainActivity();
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mConfig = onInit();
 
         mSplashScreenLoader = new SplashScreenLoader(this)
-                .mainActivity(mConfig.getMainActivity())
+                .mainActivity(getMainActivity())
                 .executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
 
         mCloudWallpapersLoader = new CloudWallpapersLoader(this).execute();
@@ -176,9 +178,12 @@ public abstract class CandyBarSplashActivity extends AppCompatActivity implement
                         if (list.size() > 0 && list.get(0) instanceof Map) {
                             Map map = (Map) list.get(0);
                             String thumbUrl = JsonHelper.getThumbUrl(map);
-                            ImageLoader.getInstance().loadImageSync(thumbUrl,
-                                    ImageConfig.getThumbnailSize(),
-                                    ImageConfig.getDefaultImageOptions(true));
+
+                            Glide.with(context.get())
+                                    .load(thumbUrl)
+                                    .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
+                                    .override(ImageConfig.getThumbnailSize())
+                                    .preload();
                         }
                     }
                     return true;

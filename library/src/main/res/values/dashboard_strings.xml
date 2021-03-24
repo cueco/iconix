@@ -1,5 +1,4 @@
-<resources>
-
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="splash_screen_title">CandyBar Material Dashboard</string>
 
     <!-- Navigation View -->
@@ -48,6 +47,7 @@
     <string name="search_icon">Icon Name</string>
 
     <!-- Update -->
+    <string name="checking_for_update">Checking for update …</string>
     <string name="update_available">Update available!</string>
     <string name="no_update_available">You\'re using the latest version!</string>
 
@@ -67,8 +67,8 @@
 
     <!-- Play Store Installation Check -->
     <string name="playstore_check">Play Store Check</string>
-    <string name="playstore_check_success">Thanks for Installing the App from Play Store. Enjoy.</string>
-    <string name="playstore_check_failed">It seems like you installed this icon pack from outside the Play Store.
+    <string name="playstore_check_success">Thanks you for installing the app from Google Play Store. Enjoy.</string>
+    <string name="playstore_check_failed">It seems like you installed this icon pack from outside of Google Play Store.
         You will not be able to use it.</string>
 
     <!-- Share -->
@@ -151,7 +151,10 @@
     <string name="request_already_requested">Already requested</string>
 
     <string name="request_building">Building request …</string>
-    <string name="request_fetching_data">Fetching latest data...</string>
+    <string name="request_arctic_sending">Sending request to Arctic Manager...</string>
+    <string name="request_arctic_error">Error occurred while sending request to Arctic Manager. Error is %s</string>
+    <string name="request_arctic_success">Successfully sent request to Arctic Manager</string>
+    <string name="request_fetching_data">Fetching latest data …</string>
     <string name="request_build_failed">Unable to build icon request</string>
     <string name="request_appfilter_failed">Unable to read appfilter.xml</string>
     <string name="request_requested">Please check your request again.
@@ -159,6 +162,7 @@
     <string name="request_email_client">Choose the app you want to use to send the icon request</string>
     <string name="request_app_disabled">You\'re using an older version of this icon pack. The requested icons may be included in the latest version. Please update your app to latest version to request icons.</string>
     <string name="connection_error_long">Unable to load data from server. Please, check your network connection.</string>
+    <string name="unable_to_load_config">An error occurred while fetching/reading data from the server.</string>
 
     <string name="request_limit">You are only able to make %d request(s) with regular request.</string>
     <string name="request_used">You have requested %d icon(s).</string>
@@ -250,6 +254,11 @@
     <string name="pref_others_reset_tutorial">Reset Tutorial</string>
     <string name="pref_others_reset_tutorial_reset">Tutorial Reset</string>
 
+    <!-- Themes -->
+    <string name="theme_name_auto">Auto</string>
+    <string name="theme_name_light">Light</string>
+    <string name="theme_name_dark">Dark</string>
+
     <!-- Permission -->
     <string name="permission_storage_denied">Storage permission needed to save wallpaper</string>
 
@@ -295,5 +304,7 @@
     <!-- DrawerToggle -->
     <string name="txt_open">Open</string>
     <string name="txt_close">Close</string>
+
+    <string name="txt_new">New</string>
 
 </resources>

@@ -5,6 +5,8 @@ import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.graphics.Bitmap;
+import android.util.Base64;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -14,20 +16,29 @@ import com.afollestad.materialdialogs.MaterialDialog;
 import com.danimahardhika.android.helpers.core.TimeHelper;
 import com.danimahardhika.android.helpers.core.utils.LogUtil;
 
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.xmlpull.v1.XmlPullParser;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.BufferedWriter;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.text.Normalizer;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import candybar.lib.R;
 import candybar.lib.activities.CandyBarMainActivity;
@@ -36,6 +47,9 @@ import candybar.lib.databases.Database;
 import candybar.lib.items.Request;
 import candybar.lib.preferences.Preferences;
 import candybar.lib.utils.listeners.RequestListener;
+
+import static candybar.lib.helpers.DrawableHelper.getReqIcon;
+import static candybar.lib.helpers.DrawableHelper.getRightIcon;
 
 /*
  * CandyBar - Material Dashboard
@@ -68,6 +82,26 @@ public class RequestHelper {
                 new SimpleDateFormat("dd_MM_yyyy_HH_mm_ss", Locale.getDefault())) + ".zip";
     }
 
+    public static String fixNameForRequest(String name) {
+        String normalized = Normalizer.normalize(name.toLowerCase(), Normalizer.Form.NFD);
+
+        try {
+            // This code causes crash on some android devices
+            normalized = normalized.replaceAll("[\\p{InCombiningDiacriticalMarks}\\p{IsLm}\\p{IsSk}]+", "");
+        } catch (Exception ignored) {
+        }
+
+        normalized = normalized
+                .replaceAll("[.\"']", "")
+                .replaceAll("[ \\[\\]{}()=!/\\\\,?°|<>;:#~+*-]", "_")
+                .replaceAll("&", "_and_");
+
+        if (Character.isDigit(normalized.charAt(0))) normalized = "_" + normalized;
+        normalized = normalized.replaceAll("_+", "_");
+
+        return normalized;
+    }
+
     @Nullable
     public static File buildXml(@NonNull Context context, @NonNull List<Request> requests, @NonNull XmlType xmlType) {
         try {
@@ -80,12 +114,13 @@ public class RequestHelper {
             }
 
             File file = new File(context.getCacheDir().toString(), xmlType.getFileName());
+            String UTF8 = "UTF8";
             Writer writer = new BufferedWriter(new OutputStreamWriter(
-                    new FileOutputStream(file), "UTF8"));
+                    new FileOutputStream(file), UTF8));
             writer.append(xmlType.getHeader()).append("\n\n");
 
             for (Request request : requests) {
-                writer.append(xmlType.getContent(request));
+                writer.append(xmlType.getContent(context, request));
             }
             writer.append(xmlType.getFooter());
             writer.flush();
@@ -93,6 +128,149 @@ public class RequestHelper {
             return file;
         } catch (IOException e) {
             LogUtil.e(Log.getStackTraceString(e));
+        }
+        return null;
+    }
+
+    public static String buildJsonForArctic(@NonNull List<Request> requests) {
+        StringBuilder sb = new StringBuilder();
+        boolean isFirst = true;
+
+        sb.append("{ \"components\": [\n");
+        for (Request request : requests) {
+            if (!isFirst) sb.append(",\n");
+            sb.append(String.format("{ \"name\": \"%s\", \"pkg\": \"%s\", \"componentInfo\": \"%s\", \"drawable\": \"%s\" }",
+                    request.getName(),
+                    request.getPackageName(),
+                    request.getActivity(),
+                    fixNameForRequest(request.getName())));
+            isFirst = false;
+        }
+        sb.append("]}");
+
+        return sb.toString();
+    }
+
+    public static String buildJsonForMyAP(@NonNull Context context, @NonNull List<Request> requests) {
+        StringBuilder sb = new StringBuilder();
+        boolean isFirst = true;
+
+        sb.append("{ \"projectUID\": \"ENTER UID\",");
+        sb.append("\"icons\" : [");
+        for (Request request : requests) {
+            Bitmap appBitmap = getRightIcon(getReqIcon(context, request.getActivity()));
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            appBitmap.compress(Bitmap.CompressFormat.PNG, 100, baos);
+            String base64Icon = Base64.encodeToString(baos.toByteArray(), Base64.DEFAULT);
+
+            if (!isFirst) sb.append(",\n");
+            sb.append("\"name\": \"" + request.getName() + "\"," +
+                    "\"packageName\": \"" + request.getPackageName() + "\"," +
+                    "\"imageStr\": \"" + base64Icon + "\"," +
+                    "\"activities\": [\"" + request.getActivity() + "\"]");
+            isFirst = false;
+        }
+        sb.append("]}");
+
+        return sb.toString();
+    }
+
+    public static String getRegularArcticApiKey(Context context) {
+        String arcticApiKey = context.getResources().getString(R.string.regular_request_arctic_api_key);
+        // Fallback to arctic_manager_api_key
+        if (arcticApiKey.length() == 0)
+            arcticApiKey = context.getResources().getString(R.string.arctic_manager_api_key);
+
+        return arcticApiKey;
+    }
+
+    public static boolean isRegularArcticEnabled(Context context) {
+        return context.getResources().getString(R.string.regular_request_method).length() > 0
+                ? context.getResources().getString(R.string.regular_request_method).contentEquals("arctic")
+                // Use fallback method to check if arctic is enabled
+                : getRegularArcticApiKey(context).length() > 0;
+    }
+
+    public static String getPremiumArcticApiKey(Context context) {
+        String arcticApiKey = context.getResources().getString(R.string.premium_request_arctic_api_key);
+        // Fallback to regular request's api key
+        if (arcticApiKey.length() == 0) arcticApiKey = getRegularArcticApiKey(context);
+
+        return arcticApiKey;
+    }
+
+    public static boolean isPremiumArcticEnabled(Context context) {
+        return context.getResources().getString(R.string.premium_request_method).length() > 0
+                ? context.getResources().getString(R.string.premium_request_method).contentEquals("arctic")
+                // Fallback to regular request's method
+                : context.getResources().getString(R.string.regular_request_method).length() > 0
+                ? context.getResources().getString(R.string.regular_request_method).contentEquals("arctic")
+                // Use fallback method to check if arctic is enabled
+                : getRegularArcticApiKey(context).length() > 0;
+    }
+
+    public static String sendArcticRequest(List<Request> requests, List<String> iconFiles, File directory, String apiKey) {
+        okhttp3.RequestBody okRequestBody = new okhttp3.MultipartBody.Builder()
+                .setType(okhttp3.MultipartBody.FORM)
+                .addFormDataPart("apps", buildJsonForArctic(requests))
+                .addFormDataPart("archive", "icons.zip", okhttp3.RequestBody.create(
+                        getZipFile(iconFiles, directory.toString(), "icons.zip"),
+                        okhttp3.MediaType.parse("application/zip")))
+                .build();
+
+        okhttp3.Request okRequest = new okhttp3.Request.Builder()
+                .url("https://arcticmanager.com/v1/request")
+                .addHeader("TokenID", apiKey)
+                .addHeader("Accept", "application/json")
+                .addHeader("User-Agent", "afollestad/icon-request")
+                .post(okRequestBody)
+                .build();
+
+        okhttp3.OkHttpClient okHttpClient = new okhttp3.OkHttpClient();
+
+        try {
+            okhttp3.Response response = okHttpClient.newCall(okRequest).execute();
+            boolean success = response.code() > 199 && response.code() < 300;
+            if (!success) {
+                JSONObject responseJson = new JSONObject(response.body().string());
+                return responseJson.getString("error");
+            }
+        } catch (IOException | JSONException ignoredException) {
+            LogUtil.d("ARCTIC_MANAGER: Error");
+            return "";
+        }
+        return null;
+    }
+
+    public static File getZipFile(List<String> files, String filepath, String filename) {
+        // Modified from https://github.com/danimahardhika/android-helpers/blob/master/core/src/main/java/com/danimahardhika/android/helpers/core/FileHelper.java
+        try {
+            final int BUFFER = 2048;
+            final File file = new File(filepath, filename);
+            BufferedInputStream origin;
+            FileOutputStream dest = new FileOutputStream(file);
+            ZipOutputStream out = new ZipOutputStream(new BufferedOutputStream(
+                    dest));
+
+            byte[] data = new byte[BUFFER];
+            for (int i = 0; i < files.size(); i++) {
+                FileInputStream fi = new FileInputStream(files.get(i));
+                origin = new BufferedInputStream(fi, BUFFER);
+
+                ZipEntry entry = new ZipEntry(files.get(i).substring(
+                        files.get(i).lastIndexOf("/") + 1));
+                out.putNextEntry(entry);
+                int count;
+
+                while ((count = origin.read(data, 0, BUFFER)) != -1) {
+                    out.write(data, 0, count);
+                }
+                origin.close();
+            }
+
+            out.close();
+            return file;
+        } catch (Exception ignored) {
         }
         return null;
     }
@@ -291,7 +469,7 @@ public class RequestHelper {
             return;
         }
 
-        //Lucky Patcher and Freedom package name
+        // Lucky Patcher and Freedom package name
         String[] strings = new String[]{
                 "com.chelpus.lackypatch",
                 "com.dimonvideo.luckypatcher",
@@ -352,15 +530,14 @@ public class RequestHelper {
             return footer;
         }
 
-        private String getContent(@NonNull Request request) {
+        private String getContent(@NonNull Context context, @NonNull Request request) {
             switch (this) {
                 case APPFILTER:
                     return "\t<!-- " + request.getName() + " -->" +
                             "\n" +
-                            "\t<item component=\"ComponentInfo{" + request.getActivity() +
-                            "}\" drawable=\"" +
-                            request.getName().toLowerCase().replace(" ", "_") +
-                            "\" />" +
+                            "\t" + context.getString(R.string.appfilter_item)
+                            .replaceAll("\\{\\{component\\}\\}", request.getActivity())
+                            .replaceAll("\\{\\{drawable\\}\\}", fixNameForRequest(request.getName())) +
                             "\n\n";
                 case APPMAP:
                     String packageName = "" + request.getPackageName() + "/";
@@ -368,15 +545,15 @@ public class RequestHelper {
                     return "\t<!-- " + request.getName() + " -->" +
                             "\n" +
                             "\t<item class=\"" + className + "\" name=\"" +
-                            request.getName().toLowerCase().replace(" ", "_") +
-                            "\" />" +
+                            fixNameForRequest(request.getName()) +
+                            "\"/>" +
                             "\n\n";
                 case THEME_RESOURCES:
                     return "\t<!-- " + request.getName() + " -->" +
                             "\n" +
                             "\t<AppIcon name=\"" + request.getActivity() + "\" image=\"" +
-                            request.getName().toLowerCase().replace(" ", "_") +
-                            "\" />" +
+                            fixNameForRequest(request.getName()) +
+                            "\"/>" +
                             "\n\n";
                 default:
                     return "";

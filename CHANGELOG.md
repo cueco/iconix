@@ -1,3 +1,93 @@
+# v3.9.0
+- Fix new wallpaper count badge
+- Add Indonesian language
+- Added option to set default theme
+- Now shows CandyBar version in the About section
+- Remove duplicates in icon search, fixed back press behaviour
+- Now sorts wallpapers in ascending order
+- Fixed locale not applying after a relaunch
+- Added configuration to customize email body
+- Updated translations
+
+# v3.8.1
+- Brought back support for Android Jelly Bean
+- Fixed issue with premium request email
+- Minor fixes
+
+# v3.8.0
+- Rewrote configuration JSON checkers
+- Added option to use different email, method or Arctic API key
+  for regular and premium icon requests
+- Fixed Flick Launcher applier
+- Added support for auto light-dark mode
+- Fixed issues with icon requests
+- Fixed the wallpaper loading issue
+- Updated translations
+- Improved documentation comments
+- Improved wiki documentation
+- Lots of minor fixes
+
+# v3.7.4
+- Updated translations
+- Fix unable to disable regular icon request
+- Fix error when building icon requests on some devices
+
+# v3.7.2
+- Fix icon name generation
+
+# v3.7.0
+- Added Czech language
+- Updated translations
+- Updated Gradle
+- Improved Adaptive Icon support
+- Bumped minSdk to 21. Now the minimum supported Android version is 5.0 (Lollipop)
+- Minor design refreshment
+- Migrated to Glide
+- Improved fast scrollbar for icons section
+- Removed UIL completely
+- Now properly fixes icon name in Icon Requests
+- Redesigned Apply section
+- Redesigned Wallpaper section
+- Added Niagara and Square launcher
+- Fixed Microsoft launcher apply behaviour
+
+# v3.6.3
+- Updated Gradle Plugin.
+- Option to hide missing app count.
+- Fixed new wallpaper count badge.
+- Updated translations.
+- Added new translations.
+
+# v3.6.2
+- Support for customizing background color of navigation view header.
+- Fixed white status bar showing on pre Android Oreo devices.
+- Fixed proguard error.
+- Fixed icons being count even when automatic icon counting is disabled.
+- Now app names in icon request are normalized, Ex. `ů` is normalized to `u`.
+
+# v3.6.0
+- Better icon generation for requests.
+- Improved icon preview.
+- Added support for [Arctic Manager](https://arcticmanager.com).
+- Updated Gradle plugin.
+- Removed app lock.
+- Updated translations.
+- Minor Fixes.
+
+# v3.5.0-beta.6.7
+- Fixed Icon Request Limit not resetting after update.
+- Updated Gradle Versions.
+- Fixed Crash on Tablets.
+- Added Better Support for OnePlus Launcher.
+- Added BlackBerry Launcher.
+- Added Flick Launcher.
+
+
+# v3.5.0-beta.6.6
+- Fix wallpaper download issue with Android 10.
+- Show Loader while icon are being loaded.
+- Minor Fixes
+
 # v3.5.0-beta.6.5
 - Fix Playstore check.
 - New Outline Styled Card.

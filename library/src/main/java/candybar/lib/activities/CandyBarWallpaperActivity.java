@@ -8,6 +8,7 @@ import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.RectF;
+import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
@@ -28,6 +29,13 @@ import androidx.coordinatorlayout.widget.CoordinatorLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.palette.graphics.Palette;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.DataSource;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.load.engine.GlideException;
+import com.bumptech.glide.request.RequestListener;
+import com.bumptech.glide.request.target.CustomTarget;
+import com.bumptech.glide.request.target.Target;
 import com.danimahardhika.android.helpers.animation.AnimationHelper;
 import com.danimahardhika.android.helpers.core.ColorHelper;
 import com.danimahardhika.android.helpers.core.DrawableHelper;
@@ -36,23 +44,19 @@ import com.danimahardhika.android.helpers.permission.PermissionCode;
 import com.danimahardhika.android.helpers.permission.PermissionHelper;
 import com.kogitune.activitytransition.ActivityTransition;
 import com.kogitune.activitytransition.ExitActivityTransition;
-import com.nostra13.universalimageloader.core.DisplayImageOptions;
-import com.nostra13.universalimageloader.core.ImageLoader;
-import com.nostra13.universalimageloader.core.assist.FailReason;
-import com.nostra13.universalimageloader.core.listener.SimpleImageLoadingListener;
 
 import candybar.lib.R;
 import candybar.lib.adapters.WallpapersAdapter;
 import candybar.lib.databases.Database;
 import candybar.lib.helpers.LocaleHelper;
 import candybar.lib.helpers.TapIntroHelper;
+import candybar.lib.helpers.ThemeHelper;
 import candybar.lib.items.PopupItem;
 import candybar.lib.items.Wallpaper;
 import candybar.lib.preferences.Preferences;
 import candybar.lib.tasks.WallpaperApplyTask;
 import candybar.lib.tasks.WallpaperPropertiesLoaderTask;
 import candybar.lib.utils.Extras;
-import candybar.lib.utils.ImageConfig;
 import candybar.lib.utils.Popup;
 import candybar.lib.utils.WallpaperDownloader;
 import io.github.inflationx.viewpump.ViewPumpContextWrapper;
@@ -97,9 +101,12 @@ public class CandyBarWallpaperActivity extends AppCompatActivity implements View
     private PhotoViewAttacher mAttacher;
     private ExitActivityTransition mExitTransition;
 
+    private boolean prevIsDarkTheme;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
-        super.setTheme(Preferences.get(this).isDarkTheme() ?
+        prevIsDarkTheme = ThemeHelper.isDarkTheme(this);
+        super.setTheme(ThemeHelper.isDarkTheme(this) ?
                 R.style.WallpaperThemeDark : R.style.WallpaperTheme);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_wallpaper);
@@ -166,7 +173,6 @@ public class CandyBarWallpaperActivity extends AppCompatActivity implements View
                 transition.addListener(new Transition.TransitionListener() {
                     @Override
                     public void onTransitionStart(Transition transition) {
-
                     }
 
                     @Override
@@ -181,19 +187,17 @@ public class CandyBarWallpaperActivity extends AppCompatActivity implements View
 
                     @Override
                     public void onTransitionCancel(Transition transition) {
-
                     }
 
                     @Override
                     public void onTransitionPause(Transition transition) {
-
                     }
 
                     @Override
                     public void onTransitionResume(Transition transition) {
-
                     }
                 });
+
                 return;
             }
         }
@@ -212,6 +216,10 @@ public class CandyBarWallpaperActivity extends AppCompatActivity implements View
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
+        if (prevIsDarkTheme != ThemeHelper.isDarkTheme(this)) {
+            recreate();
+            return;
+        }
         LocaleHelper.setLocale(this);
         resetBottomBarPadding();
     }
@@ -237,8 +245,7 @@ public class CandyBarWallpaperActivity extends AppCompatActivity implements View
         if (Preferences.get(this).isCropWallpaper()) {
             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_USER);
         }
-
-        ImageLoader.getInstance().cancelDisplayTask(mImageView);
+        Glide.get(this).clearMemory();
         if (mAttacher != null) mAttacher.cleanup();
         super.onDestroy();
     }
@@ -437,59 +444,62 @@ public class CandyBarWallpaperActivity extends AppCompatActivity implements View
                 .wallpaper(mWallpaper)
                 .start(AsyncTask.THREAD_POOL_EXECUTOR);
 
-        DisplayImageOptions.Builder options = ImageConfig.getRawDefaultImageOptions();
-        options.cacheInMemory(false);
-        options.cacheOnDisk(true);
+        Glide.with(this)
+                .asBitmap()
+                .load(mWallpaper.getURL())
+                .override(2000)
+                .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
+                .timeout(10000)
+                .listener(new RequestListener<Bitmap>() {
+                    @Override
+                    public boolean onLoadFailed(@Nullable GlideException e, Object model, Target<Bitmap> target, boolean isFirstResource) {
+                        if (mWallpaper.getColor() == 0) {
+                            mWallpaper.setColor(ColorHelper.getAttributeColor(
+                                    CandyBarWallpaperActivity.this, R.attr.colorAccent));
+                        }
 
-        ImageLoader.getInstance().handleSlowNetwork(true);
-        ImageLoader.getInstance().displayImage(mWallpaper.getURL(), mImageView, options.build(), new SimpleImageLoadingListener() {
-
-            @Override
-            public void onLoadingStarted(String imageUri, View view) {
-                super.onLoadingStarted(imageUri, view);
-                if (Preferences.get(CandyBarWallpaperActivity.this).isCropWallpaper()) {
-                    if (android.os.Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-                        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+                        return true;
                     }
-                }
 
-                AnimationHelper.fade(mProgress).start();
+                    @Override
+                    public boolean onResourceReady(Bitmap loadedImage, Object model, Target<Bitmap> target, DataSource dataSource, boolean isFirstResource) {
+                        if (loadedImage != null && mWallpaper.getColor() == 0) {
+                            Palette.from(loadedImage).generate(palette -> {
+                                int accent = ColorHelper.getAttributeColor(
+                                        CandyBarWallpaperActivity.this, R.attr.colorAccent);
+                                int color = palette.getVibrantColor(accent);
+                                if (color == accent)
+                                    color = palette.getMutedColor(accent);
+
+                                mWallpaper.setColor(color);
+                                Database.get(CandyBarWallpaperActivity.this).updateWallpaper(mWallpaper);
+
+                                onWallpaperLoaded();
+                            });
+                        } else {
+                            onWallpaperLoaded();
+                        }
+
+                        return false;
+                    }
+                })
+                .into(new CustomTarget<Bitmap>() {
+                    @Override
+                    public void onResourceReady(@NonNull Bitmap resource, @Nullable com.bumptech.glide.request.transition.Transition<? super Bitmap> transition) {
+                        mImageView.setImageBitmap(resource);
+                    }
+
+                    @Override
+                    public void onLoadCleared(@Nullable Drawable placeholder) { /* Do nothing */ }
+                });
+
+        if (Preferences.get(CandyBarWallpaperActivity.this).isCropWallpaper()) {
+            if (android.os.Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+                setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
             }
+        }
 
-            @Override
-            public void onLoadingFailed(String imageUri, View view, FailReason failReason) {
-                super.onLoadingFailed(imageUri, view, failReason);
-                if (mWallpaper.getColor() == 0) {
-                    mWallpaper.setColor(ColorHelper.getAttributeColor(
-                            CandyBarWallpaperActivity.this, R.attr.colorAccent));
-                }
-
-                onWallpaperLoaded();
-            }
-
-            @Override
-            public void onLoadingComplete(String imageUri, View view, Bitmap loadedImage) {
-                super.onLoadingComplete(imageUri, view, loadedImage);
-
-                if (loadedImage != null && mWallpaper.getColor() == 0) {
-                    Palette.from(loadedImage).generate(palette -> {
-                        int accent = ColorHelper.getAttributeColor(
-                                CandyBarWallpaperActivity.this, R.attr.colorAccent);
-                        int color = palette.getVibrantColor(accent);
-                        if (color == accent)
-                            color = palette.getMutedColor(accent);
-
-                        mWallpaper.setColor(color);
-                        Database.get(CandyBarWallpaperActivity.this).updateWallpaper(mWallpaper);
-
-                        onWallpaperLoaded();
-                    });
-                    return;
-                }
-
-                onWallpaperLoaded();
-            }
-        }, null);
+        AnimationHelper.fade(mProgress).start();
     }
 
     private void onWallpaperLoaded() {

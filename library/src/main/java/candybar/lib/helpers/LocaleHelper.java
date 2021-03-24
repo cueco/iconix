@@ -51,7 +51,6 @@ public class LocaleHelper {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             LocaleList.setDefault(new LocaleList(locale));
             configuration.setLocales(new LocaleList(locale));
-            configuration.setLocale(locale);
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
             configuration.setLocale(locale);
         } else {
@@ -100,32 +99,18 @@ public class LocaleHelper {
     }
 
     @Nullable
-    public static String getOtherAppLocaleName(@NonNull Context context, @NonNull Locale locale, @NonNull String fullComponentName) {
+    public static String getOtherAppLocaleName(@NonNull Context context, @NonNull Locale locale, @NonNull String componentNameStr) {
         try {
-            int slashIndex = fullComponentName.indexOf("/");
-            String activityName = fullComponentName.substring(slashIndex).replace("/", "");
-            String packageName = fullComponentName.replace("/" + activityName, "");
+            int slashIndex = componentNameStr.indexOf("/");
+            String packageName = componentNameStr.substring(0, slashIndex);
+            String activityName = componentNameStr.substring(slashIndex + 1);
             ComponentName componentName = new ComponentName(packageName, activityName);
-
-            /*
-            Log.d("CandyBar", "Full Component Name: " + fullComponentName);
-            Log.d("CandyBar", "Activity Name: " + activityName);
-            Log.d("CandyBar", "Package Name: " + packageName);*/
 
             PackageManager packageManager = context.getPackageManager();
             ActivityInfo info = packageManager.getActivityInfo(componentName, PackageManager.GET_META_DATA);
 
             Resources res = packageManager.getResourcesForActivity(componentName);
-            Context otherAppContext = context.createPackageContext(packageName, Context.CONTEXT_IGNORE_SECURITY);
             Configuration configuration = new Configuration();
-
-            /*
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
-                configuration = res.getConfiguration();
-                configuration.setLocale(locale);
-                return otherAppContext.createConfigurationContext(configuration).getString(info.labelRes);
-            }
-            */
 
             configuration.locale = locale;
             res.updateConfiguration(configuration, context.getResources().getDisplayMetrics());
