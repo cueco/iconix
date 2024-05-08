@@ -1,5 +1,7 @@
 package candybar.lib.adapters.dialog;
 
+import static candybar.lib.helpers.DrawableHelper.getDrawableId;
+
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
@@ -18,13 +20,13 @@ import androidx.annotation.NonNull;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
-import com.danimahardhika.android.helpers.core.DrawableHelper;
 import com.danimahardhika.android.helpers.core.utils.LogUtil;
 
 import java.util.List;
 
 import candybar.lib.R;
 import candybar.lib.applications.CandyBarApplication;
+import candybar.lib.utils.CandyBarGlideModule;
 
 /*
  * CandyBar - Material Dashboard
@@ -46,10 +48,10 @@ import candybar.lib.applications.CandyBarApplication;
 
 public class OtherAppsAdapter extends BaseAdapter {
 
-    private Context mContext;
-    private List<CandyBarApplication.OtherApp> mOtherApps;
+    private final Context mContext;
+    private final List<? extends CandyBarApplication.OtherApp> mOtherApps;
 
-    public OtherAppsAdapter(@NonNull Context context, @NonNull List<CandyBarApplication.OtherApp> otherApps) {
+    public OtherAppsAdapter(@NonNull Context context, @NonNull List<? extends CandyBarApplication.OtherApp> otherApps) {
         mContext = context;
         mOtherApps = otherApps;
     }
@@ -83,17 +85,19 @@ public class OtherAppsAdapter extends BaseAdapter {
         CandyBarApplication.OtherApp otherApp = mOtherApps.get(position);
         String uri = otherApp.getIcon();
         if (!URLUtil.isValidUrl(uri)) {
-            uri = "drawable://" + DrawableHelper.getResourceId(mContext, uri);
+            uri = "drawable://" + getDrawableId(uri);
         }
 
-        Glide.with(mContext)
-                .load(uri)
-                .transition(DrawableTransitionOptions.withCrossFade(300))
-                .skipMemoryCache(true)
-                .diskCacheStrategy(uri.contains("drawable://")
-                        ? DiskCacheStrategy.NONE
-                        : DiskCacheStrategy.RESOURCE)
-                .into(holder.image);
+        if (CandyBarGlideModule.isValidContextForGlide(mContext)) {
+            Glide.with(mContext)
+                    .load(uri)
+                    .transition(DrawableTransitionOptions.withCrossFade(300))
+                    .skipMemoryCache(true)
+                    .diskCacheStrategy(uri.contains("drawable://")
+                            ? DiskCacheStrategy.NONE
+                            : DiskCacheStrategy.RESOURCE)
+                    .into(holder.image);
+        }
 
         holder.title.setText(otherApp.getTitle());
 
@@ -116,12 +120,12 @@ public class OtherAppsAdapter extends BaseAdapter {
         return view;
     }
 
-    private class ViewHolder {
+    private static class ViewHolder {
 
-        private LinearLayout container;
-        private ImageView image;
-        private TextView title;
-        private TextView desc;
+        private final LinearLayout container;
+        private final ImageView image;
+        private final TextView title;
+        private final TextView desc;
 
         ViewHolder(View view) {
             container = view.findViewById(R.id.container);

@@ -2,7 +2,6 @@ package candybar.lib.fragments.dialog;
 
 import android.app.Dialog;
 import android.content.DialogInterface;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.ListView;
@@ -16,15 +15,18 @@ import androidx.fragment.app.FragmentTransaction;
 import com.afollestad.materialdialogs.MaterialDialog;
 import com.danimahardhika.android.helpers.core.utils.LogUtil;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 
 import candybar.lib.R;
 import candybar.lib.adapters.dialog.LanguagesAdapter;
+import candybar.lib.applications.CandyBarApplication;
 import candybar.lib.helpers.LocaleHelper;
 import candybar.lib.helpers.TypefaceHelper;
 import candybar.lib.items.Language;
 import candybar.lib.preferences.Preferences;
+import candybar.lib.utils.AsyncTaskBase;
 
 /*
  * CandyBar - Material Dashboard
@@ -48,7 +50,7 @@ public class LanguagesFragment extends DialogFragment {
 
     private ListView mListView;
     private Locale mLocale;
-    private AsyncTask mAsyncTask;
+    private AsyncTaskBase mAsyncTask;
 
     public static final String TAG = "candybar.dialog.languages";
 
@@ -73,22 +75,28 @@ public class LanguagesFragment extends DialogFragment {
     @NonNull
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
-        MaterialDialog.Builder builder = new MaterialDialog.Builder(getActivity());
-        builder.customView(R.layout.fragment_languages, false);
-        builder.typeface(TypefaceHelper.getMedium(getActivity()), TypefaceHelper.getRegular(getActivity()));
-        builder.title(R.string.pref_language_header);
-        builder.negativeText(R.string.close);
-        MaterialDialog dialog = builder.build();
+        MaterialDialog dialog = new MaterialDialog.Builder(requireActivity())
+                .customView(R.layout.fragment_languages, false)
+                .typeface(TypefaceHelper.getMedium(requireActivity()), TypefaceHelper.getRegular(requireActivity()))
+                .title(R.string.pref_language_header)
+                .negativeText(R.string.close)
+                .onNegative(((_dialog, which) -> {
+                    CandyBarApplication.getConfiguration().getAnalyticsHandler().logEvent(
+                            "click",
+                            new HashMap<String, Object>() {{
+                                put("section", "settings");
+                                put("action", "cancel");
+                                put("item", "change_language");
+                            }}
+                    );
+                }))
+                .build();
         dialog.show();
 
         mListView = (ListView) dialog.findViewById(R.id.listview);
-        return dialog;
-    }
+        mAsyncTask = new LanguagesLoader().executeOnThreadPool();
 
-    @Override
-    public void onActivityCreated(Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
-        mAsyncTask = new LanguagesLoader().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        return dialog;
     }
 
     @Override
@@ -100,32 +108,41 @@ public class LanguagesFragment extends DialogFragment {
     }
 
     @Override
-    public void onDismiss(DialogInterface dialog) {
+    public void onDismiss(@NonNull DialogInterface dialog) {
         if (mLocale != null) {
-            Preferences.get(getActivity()).setCurrentLocale(mLocale.toString());
-            LocaleHelper.setLocale(getActivity());
-            getActivity().recreate();
+            Preferences.get(requireActivity()).setCurrentLocale(mLocale.toString());
+            LocaleHelper.setLocale(requireActivity());
+            requireActivity().recreate();
         }
         super.onDismiss(dialog);
     }
 
     public void setLanguage(@NonNull Locale locale) {
+        CandyBarApplication.getConfiguration().getAnalyticsHandler().logEvent(
+                "click",
+                new HashMap<String, Object>() {{
+                    put("section", "settings");
+                    put("action", "confirm");
+                    put("item", "change_language");
+                    put("locale", locale.getDisplayName());
+                }}
+        );
         mLocale = locale;
         dismiss();
     }
 
-    private class LanguagesLoader extends AsyncTask<Void, Void, Boolean> {
+    private class LanguagesLoader extends AsyncTaskBase {
 
         private List<Language> languages;
         private int index = 0;
 
         @Override
-        protected Boolean doInBackground(Void... voids) {
-            while (!isCancelled()) {
+        protected boolean run() {
+            if (!isCancelled()) {
                 try {
                     Thread.sleep(1);
-                    languages = LocaleHelper.getAvailableLanguages(getActivity());
-                    Locale locale = Preferences.get(getActivity()).getCurrentLocale();
+                    languages = LocaleHelper.getAvailableLanguages(requireActivity());
+                    Locale locale = Preferences.get(requireActivity()).getCurrentLocale();
                     for (int i = 0; i < languages.size(); i++) {
                         Locale l = languages.get(i).getLocale();
                         if (l.toString().equals(locale.toString())) {
@@ -143,13 +160,13 @@ public class LanguagesFragment extends DialogFragment {
         }
 
         @Override
-        protected void onPostExecute(Boolean aBoolean) {
-            super.onPostExecute(aBoolean);
+        protected void postRun(boolean ok) {
             if (getActivity() == null) return;
             if (getActivity().isFinishing()) return;
 
             mAsyncTask = null;
-            if (aBoolean) {
+
+            if (ok) {
                 mListView.setAdapter(new LanguagesAdapter(getActivity(), languages, index));
             } else {
                 dismiss();

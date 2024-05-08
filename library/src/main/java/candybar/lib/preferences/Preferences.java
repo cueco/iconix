@@ -5,10 +5,12 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.Build;
 
 import androidx.annotation.NonNull;
 
 import java.lang.ref.WeakReference;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 
@@ -18,7 +20,6 @@ import candybar.lib.helpers.LocaleHelper;
 import candybar.lib.helpers.ThemeHelper;
 import candybar.lib.items.Language;
 import candybar.lib.items.Theme;
-import sarsamurmu.adaptiveicon.AdaptiveIcon;
 
 /*
  * CandyBar - Material Dashboard
@@ -46,6 +47,7 @@ public class Preferences {
 
     private static final String KEY_FIRST_RUN = "first_run";
     private static final String KEY_THEME = "theme";
+    private static final String KEY_MATERIAL_YOU = "material_you";
     private static final String KEY_ICON_SHAPE = "icon_shape";
     private static final String KEY_APP_VERSION = "app_version";
     private static final String KEY_WIFI_ONLY = "wifi_only";
@@ -66,6 +68,9 @@ public class Preferences {
     private static final String KEY_REQUEST_INTRO = "request_intro";
     private static final String KEY_WALLPAPERS_INTRO = "wallpapers_intro";
     private static final String KEY_WALLPAPER_PREVIEW_INTRO = "wallpaper_preview_intro";
+    private static final String KEY_INTRO_RESET = "intro_reset";
+    private static final String KEY_TIMES_VISITED = "times_visited";
+    private static final String KEY_NEXT_REVIEW_ON_VISIT = "next_review_visit";
 
     private static final String KEY_LANGUAGE_PREFERENCE = "language_preference";
     private static final String KEY_CURRENT_LOCALE = "current_locale";
@@ -111,7 +116,7 @@ public class Preferences {
     }
 
     public int getIconShape() {
-        return getSharedPreferences().getInt(KEY_ICON_SHAPE, AdaptiveIcon.PATH_CIRCLE);
+        return getSharedPreferences().getInt(KEY_ICON_SHAPE, -1); // -1 is System default
     }
 
     public boolean isTimeToShowHomeIntro() {
@@ -154,12 +159,37 @@ public class Preferences {
         getSharedPreferences().edit().putBoolean(KEY_WALLPAPER_PREVIEW_INTRO, bool).apply();
     }
 
+    public boolean isIntroReset() {
+        return getSharedPreferences().getBoolean(KEY_INTRO_RESET, false);
+    }
+
+    public void setIntroReset(boolean bool) {
+        getSharedPreferences().edit().putBoolean(KEY_INTRO_RESET, bool).apply();
+    }
+
     public Theme getTheme() {
         return Theme.values()[getSharedPreferences().getInt(KEY_THEME, ThemeHelper.getDefaultTheme(mContext).ordinal())];
     }
 
     public void setTheme(Theme theme) {
+        CandyBarApplication.getConfiguration().getAnalyticsHandler().logEvent(
+                "click",
+                new HashMap<String, Object>() {{
+                    put("section", "settings");
+                    put("action", "change_theme");
+                    put("theme", theme.name());
+                }}
+        );
         getSharedPreferences().edit().putInt(KEY_THEME, theme.ordinal()).apply();
+    }
+
+    public boolean isMaterialYou() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return false;
+        return getSharedPreferences().getBoolean(KEY_MATERIAL_YOU, mContext.getResources().getBoolean(R.bool.material_you_by_default));
+    }
+
+    public void setMaterialYou(boolean bool) {
+        getSharedPreferences().edit().putBoolean(KEY_MATERIAL_YOU, bool).apply();
     }
 
     public boolean isToolbarShadowEnabled() {
@@ -180,10 +210,6 @@ public class Preferences {
 
     public boolean isWifiOnly() {
         return getSharedPreferences().getBoolean(KEY_WIFI_ONLY, false);
-    }
-
-    public void setWallsDirectory(String directory) {
-        getSharedPreferences().edit().putString(KEY_WALLS_DIRECTORY, directory).apply();
     }
 
     public String getWallsDirectory() {
@@ -284,8 +310,20 @@ public class Preferences {
         getSharedPreferences().edit().putInt(KEY_AVAILABLE_WALLPAPERS_COUNT, count).apply();
     }
 
-    public boolean isPlaystoreCheckEnabled() {
-        return mContext.getResources().getBoolean(R.bool.playstore_check_enabled);
+    public int getTimesVisited() {
+        return getSharedPreferences().getInt(KEY_TIMES_VISITED, 0);
+    }
+
+    public void setTimesVisited(int count) {
+        getSharedPreferences().edit().putInt(KEY_TIMES_VISITED, count).apply();
+    }
+
+    public int getNextReviewVisit() {
+        return getSharedPreferences().getInt(KEY_NEXT_REVIEW_ON_VISIT, -1);
+    }
+
+    public void setNextReviewVisit(int visitIdx) {
+        getSharedPreferences().edit().putInt(KEY_NEXT_REVIEW_ON_VISIT, visitIdx).apply();
     }
 
     private int getVersion() {
@@ -363,6 +401,7 @@ public class Preferences {
         try {
             ConnectivityManager connectivityManager = (ConnectivityManager)
                     mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
+            assert connectivityManager != null;
             NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
             return activeNetworkInfo != null && activeNetworkInfo.isConnected();
         } catch (Exception e) {
@@ -375,7 +414,9 @@ public class Preferences {
             if (isWifiOnly()) {
                 ConnectivityManager connectivityManager = (ConnectivityManager)
                         mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
+                assert connectivityManager != null;
                 NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+                assert activeNetworkInfo != null;
                 return activeNetworkInfo.getType() == ConnectivityManager.TYPE_WIFI &&
                         activeNetworkInfo.isConnected();
             }

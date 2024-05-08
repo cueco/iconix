@@ -76,7 +76,7 @@ public class Setting {
         RESTORE,
         PREMIUM_REQUEST,
         THEME,
-        WALLPAPER,
+        MATERIAL_YOU,
         LANGUAGE,
         REPORT_BUGS,
         CHANGELOG,

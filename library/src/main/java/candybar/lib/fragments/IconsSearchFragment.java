@@ -1,10 +1,16 @@
 package candybar.lib.fragments;
 
+import static candybar.lib.helpers.ViewHelper.setFastScrollColor;
+
+import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.res.Configuration;
-import android.graphics.Color;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -12,37 +18,42 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.inputmethod.EditorInfo;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.widget.SearchView;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.danimahardhika.android.helpers.core.ColorHelper;
+import com.bumptech.glide.Glide;
 import com.danimahardhika.android.helpers.core.SoftKeyboardHelper;
 import com.danimahardhika.android.helpers.core.ViewHelper;
 import com.danimahardhika.android.helpers.core.utils.LogUtil;
 import com.pluscubed.recyclerfastscroll.RecyclerFastScroller;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import candybar.lib.R;
 import candybar.lib.activities.CandyBarMainActivity;
 import candybar.lib.adapters.IconsAdapter;
 import candybar.lib.applications.CandyBarApplication;
+import candybar.lib.fragments.dialog.IconShapeChooserFragment;
 import candybar.lib.helpers.IconsHelper;
 import candybar.lib.items.Icon;
 import candybar.lib.utils.AlphanumComparator;
-
-import static candybar.lib.helpers.ViewHelper.setFastScrollColor;
+import candybar.lib.utils.AsyncTaskBase;
+import candybar.lib.utils.listeners.SearchListener;
 
 /*
  * CandyBar - Material Dashboard
@@ -67,13 +78,15 @@ public class IconsSearchFragment extends Fragment {
     private RecyclerView mRecyclerView;
     private RecyclerFastScroller mFastScroll;
     private TextView mSearchResult;
-    private SearchView mSearchView;
-    private Fragment mFragment = this;
+    private EditText mSearchInput;
+    private final Fragment mFragment = this;
 
     private IconsAdapter mAdapter;
-    private AsyncTask mAsyncTask;
+    private AsyncTaskBase mAsyncTask;
 
     public static final String TAG = "icons_search";
+
+    private static WeakReference<IconsAdapter> currentAdapter;
 
     @Nullable
     @Override
@@ -83,51 +96,51 @@ public class IconsSearchFragment extends Fragment {
         mRecyclerView = view.findViewById(R.id.icons_grid);
         mFastScroll = view.findViewById(R.id.fastscroll);
         mSearchResult = view.findViewById(R.id.search_result);
+//        Glide.get(getActivity()).setMemoryCategory(MemoryCategory.LOW);
         return view;
     }
 
     @Override
-    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        CandyBarApplication.getConfiguration().getAnalyticsHandler().logEvent(
+                "view",
+                new HashMap<String, Object>() {{ put("section", "icons_search"); }}
+        );
+
         setHasOptionsMenu(true);
 
         mRecyclerView.setHasFixedSize(true);
         mRecyclerView.setItemAnimator(new DefaultItemAnimator());
         mRecyclerView.setLayoutManager(new GridLayoutManager(getActivity(),
-                getActivity().getResources().getInteger(R.integer.icons_column_count)));
+                requireActivity().getResources().getInteger(R.integer.icons_column_count)));
 
         setFastScrollColor(mFastScroll);
         mFastScroll.attachRecyclerView(mRecyclerView);
-
         mAsyncTask = new IconsLoader().execute();
     }
 
     @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+    public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
         inflater.inflate(R.menu.menu_icons_search, menu);
         MenuItem search = menu.findItem(R.id.menu_search);
         MenuItem iconShape = menu.findItem(R.id.menu_icon_shape);
+        View searchView = search.getActionView();
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O ||
-                !getActivity().getResources().getBoolean(R.bool.includes_adaptive_icons)) {
+                !requireActivity().getResources().getBoolean(R.bool.includes_adaptive_icons)) {
             iconShape.setVisible(false);
+        } else {
+            searchView.findViewById(R.id.container).setPadding(0, 0, 0, 0);
         }
 
-        mSearchView = (SearchView) search.getActionView();
-        mSearchView.setImeOptions(EditorInfo.IME_FLAG_NO_EXTRACT_UI | EditorInfo.IME_ACTION_SEARCH);
-        mSearchView.setQueryHint(getActivity().getResources().getString(R.string.search_icon));
-        mSearchView.setMaxWidth(Integer.MAX_VALUE);
+        View clearQueryButton = searchView.findViewById(R.id.clear_query_button);
+        mSearchInput = searchView.findViewById(R.id.search_input);
+        mSearchInput.setHint(R.string.search_icon);
 
         search.expandActionView();
-        mSearchView.setIconifiedByDefault(false);
-        mSearchView.clearFocus();
-
-        int color = ColorHelper.getAttributeColor(getActivity(), R.attr.toolbar_icon);
-        ViewHelper.setSearchViewTextColor(mSearchView, color);
-        ViewHelper.setSearchViewBackgroundColor(mSearchView, Color.TRANSPARENT);
-        ViewHelper.setSearchViewCloseIcon(mSearchView, R.drawable.ic_toolbar_close);
-        ViewHelper.setSearchViewSearchIcon(mSearchView, null);
 
         search.setOnActionExpandListener(new MenuItem.OnActionExpandListener() {
             @Override
@@ -137,44 +150,65 @@ public class IconsSearchFragment extends Fragment {
 
             @Override
             public boolean onMenuItemActionCollapse(MenuItem item) {
-                getActivity().onBackPressed();
+                requireActivity().getSupportFragmentManager().popBackStack();
+
+                Activity activity = requireActivity();
+                new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                    ((SearchListener) activity).onSearchExpanded(false);
+                }, 500);
                 return true;
             }
         });
 
-        mSearchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+        mSearchInput.addTextChangedListener(new TextWatcher() {
             @Override
-            public boolean onQueryTextChange(String string) {
-                filterSearch(string);
-                return true;
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
             }
 
             @Override
-            public boolean onQueryTextSubmit(String string) {
-                mSearchView.clearFocus();
-                return true;
+            public void afterTextChanged(Editable editable) {
             }
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+                String query = charSequence.toString();
+                filterSearch(query);
+                clearQueryButton.setVisibility(query.contentEquals("") ? View.GONE : View.VISIBLE);
+            }
+        });
+
+        clearQueryButton.setOnClickListener(view -> mSearchInput.setText(""));
+
+        iconShape.setOnMenuItemClickListener(menuItem -> {
+            IconShapeChooserFragment.showIconShapeChooser(requireActivity().getSupportFragmentManager());
+            return false;
         });
     }
 
     @Override
-    public void onConfigurationChanged(Configuration newConfig) {
+    public void onConfigurationChanged(@NonNull Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
-        ViewHelper.resetSpanCount(mRecyclerView, getActivity().getResources().getInteger(R.integer.icons_column_count));
+        ViewHelper.resetSpanCount(mRecyclerView, requireActivity().getResources().getInteger(R.integer.icons_column_count));
     }
 
     @Override
     public void onDestroy() {
         if (mAsyncTask != null) mAsyncTask.cancel(true);
+        currentAdapter = null;
+        Activity activity = getActivity();
+        if (activity != null) {
+//            Glide.get(activity).setMemoryCategory(MemoryCategory.NORMAL);
+            Glide.get(activity).clearMemory();
+        }
         super.onDestroy();
     }
 
+    @SuppressLint("StringFormatInvalid")
     private void filterSearch(String query) {
         try {
             mAdapter.search(query);
             if (mAdapter.getItemCount() == 0) {
-                String text = String.format(getActivity().getResources().getString(
-                        R.string.search_noresult), query);
+                String text = requireActivity().getResources().getString(R.string.search_noresult, query);
                 mSearchResult.setText(text);
                 mSearchResult.setVisibility(View.VISIBLE);
             } else mSearchResult.setVisibility(View.GONE);
@@ -183,65 +217,56 @@ public class IconsSearchFragment extends Fragment {
         }
     }
 
-    private class IconsLoader extends AsyncTask<Void, Void, Boolean> {
+    public static void reloadIcons() {
+        if (currentAdapter != null && currentAdapter.get() != null)
+            currentAdapter.get().reloadIcons();
+    }
 
-        private List<Icon> icons;
+    private class IconsLoader extends AsyncTaskBase {
+
+        private Set<Icon> iconSet;
+        private List<Icon> iconList;
+        private Set<String> excludedCategories;
 
         @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-            icons = new ArrayList<>();
+        protected void preRun() {
+            iconSet = new HashSet<>();
+            String[] exCategories = CandyBarApplication.getConfiguration().getExcludedCategoryForSearch();
+            excludedCategories = exCategories != null ? new HashSet<>(Arrays.asList(exCategories)) : new HashSet<>();
         }
 
         @Override
-        protected Boolean doInBackground(Void... voids) {
-            while (!isCancelled()) {
+        protected boolean run() {
+            if (!isCancelled()) {
                 try {
                     Thread.sleep(1);
-                    if (CandyBarMainActivity.sSections == null) {
-                        CandyBarMainActivity.sSections = IconsHelper.getIconsList(getActivity());
 
-                        for (Icon section : CandyBarMainActivity.sSections) {
-                            if (getActivity().getResources().getBoolean(R.bool.show_icon_name)) {
-                                for (Icon icon : section.getIcons()) {
-                                    String name;
-                                    if ((icon.getCustomName() != null) && (!icon.getCustomName().contentEquals(""))) {
-                                        name = icon.getCustomName();
-                                    } else {
-                                        name = IconsHelper.replaceName(getActivity(),
-                                                getActivity().getResources().getBoolean(R.bool.enable_icon_name_replacer),
-                                                icon.getTitle());
-                                    }
-                                    icon.setTitle(name);
-                                }
-                            }
-                        }
-
-                        if (CandyBarApplication.getConfiguration().isShowTabAllIcons()) {
-                            List<Icon> icons = IconsHelper.getTabAllIcons();
-                            CandyBarMainActivity.sSections.add(new Icon(
-                                    CandyBarApplication.getConfiguration().getTabAllIconsTitle(), icons));
-                        }
-                    }
+                    IconsHelper.loadIcons(requireActivity(), false);
 
                     for (Icon icon : CandyBarMainActivity.sSections) {
+                        boolean isExlcuded = excludedCategories.contains(icon.getTitle());
+                        String allIconsTabTitle = CandyBarApplication.getConfiguration().getTabAllIconsTitle();
                         if (CandyBarApplication.getConfiguration().isShowTabAllIcons()) {
-                            if (!icon.getTitle().equals(CandyBarApplication.getConfiguration().getTabAllIconsTitle())) {
-                                icons.addAll(icon.getIcons());
+                            if (!icon.getTitle().equals(allIconsTabTitle) && !isExlcuded) {
+                                iconSet.addAll(icon.getIcons());
                             }
-                        } else {
-                            icons.addAll(icon.getIcons());
+                        } else if (!isExlcuded) {
+                            iconSet.addAll(icon.getIcons());
                         }
                     }
 
-                    Collections.sort(icons, new AlphanumComparator() {
+                    iconList = new ArrayList<>(iconSet);
+
+                    // Sort them in lowercase
+                    Collections.sort(iconList, new AlphanumComparator() {
                         @Override
                         public int compare(Object o1, Object o2) {
-                            String s1 = ((Icon) o1).getTitle();
-                            String s2 = ((Icon) o2).getTitle();
+                            String s1 = ((Icon) o1).getTitle().toLowerCase().trim();
+                            String s2 = ((Icon) o2).getTitle().toLowerCase().trim();
                             return super.compare(s1, s2);
                         }
                     });
+
                     return true;
                 } catch (Exception e) {
                     LogUtil.e(Log.getStackTraceString(e));
@@ -252,17 +277,17 @@ public class IconsSearchFragment extends Fragment {
         }
 
         @Override
-        protected void onPostExecute(Boolean aBoolean) {
-            super.onPostExecute(aBoolean);
+        protected void postRun(boolean ok) {
             if (getActivity() == null) return;
             if (getActivity().isFinishing()) return;
 
             mAsyncTask = null;
-            if (aBoolean) {
-                mAdapter = new IconsAdapter(getActivity(), icons, true, mFragment);
+            if (ok) {
+                mAdapter = new IconsAdapter(getActivity(), iconList, mFragment, false);
+                currentAdapter = new WeakReference<>(mAdapter);
                 mRecyclerView.setAdapter(mAdapter);
                 filterSearch("");
-                mSearchView.requestFocus();
+                mSearchInput.requestFocus();
                 SoftKeyboardHelper.openKeyboard(getActivity());
             } else {
                 // Unable to load all icons

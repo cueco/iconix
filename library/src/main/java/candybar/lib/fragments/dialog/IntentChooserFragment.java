@@ -8,7 +8,6 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -38,6 +37,7 @@ import candybar.lib.applications.CandyBarApplication;
 import candybar.lib.fragments.RequestFragment;
 import candybar.lib.helpers.TypefaceHelper;
 import candybar.lib.items.IntentChooser;
+import candybar.lib.utils.AsyncTaskBase;
 
 /*
  * CandyBar - Material Dashboard
@@ -64,7 +64,7 @@ public class IntentChooserFragment extends DialogFragment {
 
     private int mType;
     private IntentAdapter mAdapter;
-    private AsyncTask mAsyncTask;
+    private AsyncTaskBase mAsyncTask;
 
     public static final int ICON_REQUEST = 0;
     public static final int REBUILD_ICON_REQUEST = 1;
@@ -105,14 +105,12 @@ public class IntentChooserFragment extends DialogFragment {
     @NonNull
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
-        MaterialDialog.Builder builder = new MaterialDialog.Builder(getActivity());
-        builder.customView(R.layout.fragment_intent_chooser, false);
-        builder.typeface(
-                TypefaceHelper.getMedium(getActivity()),
-                TypefaceHelper.getRegular(getActivity()));
-        builder.positiveText(android.R.string.cancel);
+        MaterialDialog dialog = new MaterialDialog.Builder(requireActivity())
+                .customView(R.layout.fragment_intent_chooser, false)
+                .typeface(TypefaceHelper.getMedium(requireActivity()), TypefaceHelper.getRegular(requireActivity()))
+                .positiveText(android.R.string.cancel)
+                .build();
 
-        MaterialDialog dialog = builder.build();
         dialog.getActionButton(DialogAction.POSITIVE).setOnClickListener(view -> {
             if (mAdapter == null || mAdapter.isAsyncTaskRunning()) return;
 
@@ -137,36 +135,31 @@ public class IntentChooserFragment extends DialogFragment {
 
         mIntentList = (ListView) dialog.findViewById(R.id.intent_list);
         mNoApp = (TextView) dialog.findViewById(R.id.intent_noapp);
+        mAsyncTask = new IntentChooserLoader().execute();
+
         return dialog;
     }
 
     @Override
-    public void onActivityCreated(Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
-        mAsyncTask = new IntentChooserLoader().execute();
-    }
-
-    @Override
-    public void onDismiss(DialogInterface dialog) {
+    public void onDismiss(@NonNull DialogInterface dialog) {
         if (mAsyncTask != null) {
             mAsyncTask.cancel(true);
         }
         super.onDismiss(dialog);
     }
 
-    private class IntentChooserLoader extends AsyncTask<Void, Void, Boolean> {
+    private class IntentChooserLoader extends AsyncTaskBase {
 
         private List<IntentChooser> apps;
 
         @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
+        protected void preRun() {
             apps = new ArrayList<>();
         }
 
         @Override
-        protected Boolean doInBackground(Void... voids) {
-            while (!isCancelled()) {
+        protected boolean run() {
+            if (!isCancelled()) {
                 try {
                     Thread.sleep(1);
 
@@ -181,11 +174,11 @@ public class IntentChooserFragment extends DialogFragment {
                         intent.setType("application/zip");
                     }
 
-                    List<ResolveInfo> resolveInfos = getActivity().getPackageManager()
+                    List<ResolveInfo> resolveInfos = requireActivity().getPackageManager()
                             .queryIntentActivities(intent, 0);
                     try {
                         Collections.sort(resolveInfos, new ResolveInfo.DisplayNameComparator(
-                                getActivity().getPackageManager()));
+                                requireActivity().getPackageManager()));
                     } catch (Exception ignored) {
                     }
 
@@ -201,7 +194,7 @@ public class IntentChooserFragment extends DialogFragment {
                                     Intent inbox = new Intent(Intent.ACTION_SEND);
                                     inbox.setComponent(componentName);
 
-                                    List<ResolveInfo> list = getActivity().getPackageManager().queryIntentActivities(
+                                    List<ResolveInfo> list = requireActivity().getPackageManager().queryIntentActivities(
                                             inbox, PackageManager.MATCH_DEFAULT_ONLY);
                                     if (list.size() > 0) {
                                         apps.add(new IntentChooser(resolveInfo, IntentChooser.TYPE_SUPPORTED));
@@ -232,13 +225,12 @@ public class IntentChooserFragment extends DialogFragment {
         }
 
         @Override
-        protected void onPostExecute(Boolean aBoolean) {
-            super.onPostExecute(aBoolean);
+        protected void postRun(boolean ok) {
             if (getActivity() == null) return;
             if (getActivity().isFinishing()) return;
 
             mAsyncTask = null;
-            if (aBoolean && apps != null) {
+            if (ok && apps != null) {
                 mAdapter = new IntentAdapter(getActivity(), apps, mType);
                 mIntentList.setAdapter(mAdapter);
 

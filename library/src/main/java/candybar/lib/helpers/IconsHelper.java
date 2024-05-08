@@ -1,5 +1,7 @@
 package candybar.lib.helpers;
 
+import static com.danimahardhika.android.helpers.core.FileHelper.getUriFromFile;
+
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -14,9 +16,11 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.DataSource;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
-import com.bumptech.glide.request.target.CustomTarget;
-import com.bumptech.glide.request.transition.Transition;
+import com.bumptech.glide.load.engine.GlideException;
+import com.bumptech.glide.request.RequestListener;
+import com.bumptech.glide.request.target.Target;
 import com.danimahardhika.android.helpers.core.utils.LogUtil;
 
 import org.xmlpull.v1.XmlPullParser;
@@ -25,6 +29,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 
 import candybar.lib.R;
@@ -32,11 +37,7 @@ import candybar.lib.activities.CandyBarMainActivity;
 import candybar.lib.applications.CandyBarApplication;
 import candybar.lib.fragments.dialog.IconPreviewFragment;
 import candybar.lib.items.Icon;
-import candybar.lib.utils.AlphanumComparator;
-
-import static candybar.lib.helpers.DrawableHelper.getRightIcon;
-import static com.danimahardhika.android.helpers.core.DrawableHelper.getResourceId;
-import static com.danimahardhika.android.helpers.core.FileHelper.getUriFromFile;
+import candybar.lib.utils.CandyBarGlideModule;
 
 /*
  * CandyBar - Material Dashboard
@@ -57,6 +58,29 @@ import static com.danimahardhika.android.helpers.core.FileHelper.getUriFromFile;
  */
 
 public class IconsHelper {
+    public static void loadIcons(Context context, boolean sortIcons) throws Exception {
+        // Load icons only if they are not loaded
+        if (CandyBarMainActivity.sSections == null) {
+            CandyBarMainActivity.sSections = getIconsList(context);
+
+            for (Icon section : CandyBarMainActivity.sSections) {
+                List<Icon> icons = section.getIcons();
+
+                computeTitles(context, icons);
+
+                if (sortIcons && context.getResources().getBoolean(R.bool.enable_icons_sort)) {
+                    Collections.sort(icons, Icon.TitleComparator);
+                    section.setIcons(icons);
+                }
+            }
+
+            if (CandyBarApplication.getConfiguration().isShowTabAllIcons()) {
+                List<Icon> icons = getTabAllIcons();
+                CandyBarMainActivity.sSections.add(new Icon(
+                        CandyBarApplication.getConfiguration().getTabAllIconsTitle(), icons));
+            }
+        }
+    }
 
     @NonNull
     public static List<Icon> getIconsList(@NonNull Context context) throws Exception {
@@ -72,7 +96,7 @@ public class IconsHelper {
                 if (parser.getName().equals("category")) {
                     String title = parser.getAttributeValue(null, "title");
                     if (!sectionTitle.equals(title)) {
-                        if (sectionTitle.length() > 0) {
+                        if (sectionTitle.length() > 0 && icons.size() > 0) {
                             count += icons.size();
                             sections.add(new Icon(sectionTitle, icons));
                         }
@@ -80,11 +104,11 @@ public class IconsHelper {
                     sectionTitle = title;
                     icons = new ArrayList<>();
                 } else if (parser.getName().equals("item")) {
-                    String name = parser.getAttributeValue(null, "drawable");
+                    String drawableName = parser.getAttributeValue(null, "drawable");
                     String customName = parser.getAttributeValue(null, "name");
-                    int id = getResourceId(context, name);
+                    int id = DrawableHelper.getDrawableId(drawableName);
                     if (id > 0) {
-                        icons.add(new Icon(name, customName, id));
+                        icons.add(new Icon(drawableName, customName, id));
                     }
                 }
             }
@@ -97,7 +121,9 @@ public class IconsHelper {
                 CandyBarApplication.getConfiguration().getCustomIconsCount() == 0) {
             CandyBarApplication.getConfiguration().setCustomIconsCount(count);
         }
-        sections.add(new Icon(sectionTitle, icons));
+        if (icons.size() > 0) {
+            sections.add(new Icon(sectionTitle, icons));
+        }
         parser.close();
         return sections;
     }
@@ -121,15 +147,23 @@ public class IconsHelper {
             }
         }
 
-        Collections.sort(icons, new AlphanumComparator() {
-            @Override
-            public int compare(Object o1, Object o2) {
-                String s1 = ((Icon) o1).getTitle();
-                String s2 = ((Icon) o2).getTitle();
-                return super.compare(s1, s2);
-            }
-        });
+        Collections.sort(icons, Icon.TitleComparator);
         return icons;
+    }
+
+    public static void computeTitles(@NonNull Context context, List<Icon> icons) {
+        final boolean iconReplacer = context.getResources().getBoolean(R.bool.enable_icon_name_replacer);
+        for (Icon icon : icons) {
+            if (icon.getTitle() != null) {
+                // Title is already computed, so continue
+                continue;
+            }
+            if (icon.getCustomName() != null && !icon.getCustomName().equals("")) {
+                icon.setTitle(icon.getCustomName());
+            } else {
+                icon.setTitle(replaceName(context, iconReplacer, icon.getDrawableName()));
+            }
+        }
     }
 
     public static String replaceName(@NonNull Context context, boolean iconReplacer, String name) {
@@ -148,25 +182,32 @@ public class IconsHelper {
 
     public static String capitalizeWord(String str) {
         String[] words = str.split("\\s");
-        String capitalizeWord = "";
+        StringBuilder capitalizeWord = new StringBuilder();
         for (String w : words) {
             String first = w.substring(0, 1);
             String afterfirst = w.substring(1);
-            capitalizeWord += first.toUpperCase() + afterfirst + " ";
+            capitalizeWord.append(first.toUpperCase()).append(afterfirst).append(" ");
         }
-        return capitalizeWord.trim();
+        return capitalizeWord.toString().trim();
     }
 
     public static void selectIcon(@NonNull Context context, int action, Icon icon) {
-        if (action == IntentHelper.ICON_PICKER) {
+        CandyBarApplication.getConfiguration().getAnalyticsHandler().logEvent(
+                "click",
+                new HashMap<String, Object>() {{
+                    put("section", "icons");
+                    put("action", "pick_icon");
+                    put("item", icon.getDrawableName());
+                }}
+        );
+        if (action == IntentHelper.ICON_PICKER && CandyBarGlideModule.isValidContextForGlide(context)) {
             Glide.with(context)
                     .asBitmap()
                     .load("drawable://" + icon.getRes())
                     .skipMemoryCache(true)
                     .diskCacheStrategy(DiskCacheStrategy.NONE)
-                    .into(new CustomTarget<Bitmap>() {
-                        @Override
-                        public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
+                    .listener(new RequestListener<Bitmap>() {
+                        public void handleResult(Bitmap resource) {
                             Intent intent = new Intent();
                             intent.putExtra("icon", resource);
                             ((AppCompatActivity) context).setResult(resource != null ?
@@ -175,28 +216,34 @@ public class IconsHelper {
                         }
 
                         @Override
-                        public void onLoadCleared(@Nullable Drawable placeholder) {
-                            // Do nothing
+                        public boolean onLoadFailed(@Nullable GlideException e, Object model, Target<Bitmap> target, boolean isFirstResource) {
+                            handleResult(null);
+                            return true;
                         }
-                    });
-        } else if (action == IntentHelper.IMAGE_PICKER) {
+
+                        @Override
+                        public boolean onResourceReady(Bitmap resource, Object model, Target<Bitmap> target, DataSource dataSource, boolean isFirstResource) {
+                            handleResult(resource);
+                            return true;
+                        }
+                    })
+                    .submit();
+        } else if (action == IntentHelper.IMAGE_PICKER && CandyBarGlideModule.isValidContextForGlide(context)) {
 
             Glide.with(context)
                     .asBitmap()
                     .load("drawable://" + icon.getRes())
                     .skipMemoryCache(true)
                     .diskCacheStrategy(DiskCacheStrategy.NONE)
-                    .into(new CustomTarget<Bitmap>() {
-                        @Override
-                        public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
+                    .listener(new RequestListener<Bitmap>() {
+                        private void handleResult(Bitmap bitmap) {
                             Intent intent = new Intent();
-
-                            if (resource != null) {
+                            if (bitmap != null) {
                                 File file = new File(context.getCacheDir(), icon.getTitle() + ".png");
                                 FileOutputStream outStream;
                                 try {
                                     outStream = new FileOutputStream(file);
-                                    resource.compress(Bitmap.CompressFormat.PNG, 100, outStream);
+                                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, outStream);
                                     outStream.flush();
                                     outStream.close();
 
@@ -210,30 +257,43 @@ public class IconsHelper {
                                 }
                                 intent.putExtra("return-data", false);
                             }
-                            ((AppCompatActivity) context).setResult(resource != null ?
+                            ((AppCompatActivity) context).setResult(bitmap != null ?
                                     Activity.RESULT_OK : Activity.RESULT_CANCELED, intent);
                             ((AppCompatActivity) context).finish();
                         }
 
                         @Override
-                        public void onLoadCleared(@Nullable Drawable placeholder) {
-                            // Do nothing
+                        public boolean onLoadFailed(@Nullable GlideException e, Object model, Target<Bitmap> target, boolean isFirstResource) {
+                            handleResult(null);
+                            return false;
                         }
-                    });
+
+                        @Override
+                        public boolean onResourceReady(Bitmap resource, Object model, Target<Bitmap> target, DataSource dataSource, boolean isFirstResource) {
+                            handleResult(resource);
+                            return true;
+                        }
+                    })
+                    .submit();
         } else {
             IconPreviewFragment.showIconPreview(((AppCompatActivity) context)
                             .getSupportFragmentManager(),
-                    icon.getTitle(), icon.getRes());
+                    icon.getTitle(), icon.getRes(), icon.getDrawableName());
         }
     }
 
     @Nullable
     public static String saveIcon(List<String> files, File directory, Drawable drawable, String name) {
+        Bitmap bitmap = DrawableHelper.toBitmap(drawable);
+        assert bitmap != null;
+        return saveBitmap(files, directory, bitmap, name);
+    }
+
+    public static String saveBitmap(List<String> files, File directory, Bitmap bitmap, String name) {
         String fileName = name + ".png";
         File file = new File(directory, fileName);
         try {
             Thread.sleep(2);
-            Bitmap bitmap = getRightIcon(drawable);
 
             if (files.contains(file.toString())) {
                 fileName = fileName.replace(".png", "_" + System.currentTimeMillis() + ".png");

@@ -18,12 +18,15 @@ package candybar.lib.items;
  * limitations under the License.
  */
 
+import androidx.annotation.NonNull;
+
+import com.android.billingclient.api.ProductDetails;
+
 public class InAppBilling {
 
     private final String mProductId;
-    private String mProductName;
-    private String mPrice;
     private int mProductCount;
+    private ProductDetails mProductDetails;
 
     public static final int DONATE = 0;
     public static final int PREMIUM_REQUEST = 1;
@@ -32,17 +35,15 @@ public class InAppBilling {
         mProductId = productId;
     }
 
-    public InAppBilling(String price, String productId, String productName) {
-        mPrice = price;
+    public InAppBilling(@NonNull ProductDetails productDetails, String productId) {
         mProductId = productId;
-        mProductName = productName;
+        mProductDetails = productDetails;
     }
 
-    public InAppBilling(String price, String productId, String productName, int productCount) {
-        mPrice = price;
+    public InAppBilling(@NonNull ProductDetails productDetails, String productId, int productCount) {
         mProductId = productId;
-        mProductName = productName;
         mProductCount = productCount;
+        mProductDetails = productDetails;
     }
 
     public InAppBilling(String productId, int productCount) {
@@ -51,7 +52,7 @@ public class InAppBilling {
     }
 
     public String getPrice() {
-        return mPrice;
+        return mProductDetails.getOneTimePurchaseOfferDetails().getFormattedPrice();
     }
 
     public String getProductId() {
@@ -59,11 +60,15 @@ public class InAppBilling {
     }
 
     public String getProductName() {
-        return mProductName;
+        String title = mProductDetails.getTitle();
+        return title.substring(0, title.lastIndexOf("(")).trim();
     }
 
     public int getProductCount() {
         return mProductCount;
     }
 
+    public ProductDetails getProductDetails() {
+        return mProductDetails;
+    }
 }

@@ -1,19 +1,22 @@
 package candybar.lib.applications;
 
+import android.app.Application;
+import android.content.Context;
 import android.content.Intent;
 
 import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.multidex.MultiDexApplication;
 
 import com.danimahardhika.android.helpers.core.utils.LogUtil;
 
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import candybar.lib.R;
 import candybar.lib.activities.CandyBarCrashReport;
@@ -22,9 +25,6 @@ import candybar.lib.helpers.LocaleHelper;
 import candybar.lib.items.Request;
 import candybar.lib.preferences.Preferences;
 import candybar.lib.utils.JsonStructure;
-import io.github.inflationx.calligraphy3.CalligraphyConfig;
-import io.github.inflationx.calligraphy3.CalligraphyInterceptor;
-import io.github.inflationx.viewpump.ViewPump;
 
 /*
  * CandyBar - Material Dashboard
@@ -44,16 +44,20 @@ import io.github.inflationx.viewpump.ViewPump;
  * limitations under the License.
  */
 
-public abstract class CandyBarApplication extends MultiDexApplication {
+public abstract class CandyBarApplication extends Application {
 
     private static Configuration mConfiguration;
     private Thread.UncaughtExceptionHandler mHandler;
 
+    public static Class<?> mDrawableClass;
     public static Request.Property sRequestProperty;
     public static String sZipPath = null;
 
     @NonNull
     public abstract Configuration onInit();
+
+    @NonNull
+    public abstract Class<?> getDrawableClass();
 
     public static Configuration getConfiguration() {
         if (mConfiguration == null) {
@@ -67,19 +71,12 @@ public abstract class CandyBarApplication extends MultiDexApplication {
         super.onCreate();
         Database.get(this).openDatabase();
 
-        ViewPump.init(ViewPump.builder()
-                .addInterceptor(new CalligraphyInterceptor(
-                        new CalligraphyConfig.Builder()
-                                .setDefaultFontPath("fonts/Font-Regular.ttf")
-                                .setFontAttrId(R.attr.fontPath)
-                                .build()))
-                .build());
-
         // Enable or disable logging
         LogUtil.setLoggingTag(getString(R.string.app_name));
         LogUtil.setLoggingEnabled(true);
 
         mConfiguration = onInit();
+        mDrawableClass = getDrawableClass();
 
         if (mConfiguration.mIsCrashReportEnabled) {
             mHandler = Thread.getDefaultUncaughtExceptionHandler();
@@ -100,12 +97,12 @@ public abstract class CandyBarApplication extends MultiDexApplication {
             SimpleDateFormat dateFormat = new SimpleDateFormat(
                     "yyyy-MM-dd HH:mm:ss", Locale.getDefault());
             String dateTime = dateFormat.format(new Date());
-            sb.append("Crash Time : ").append(dateTime).append("\n");
-            sb.append("Class Name : ").append(throwable.getClass().getName()).append("\n");
-            sb.append("Caused By : ").append(throwable.toString()).append("\n");
+            sb.append("Crash Time : ").append(dateTime).append("\r\n");
+            sb.append("Class Name : ").append(throwable.getClass().getName()).append("\r\n");
+            sb.append("Caused By : ").append(throwable.toString()).append("\r\n");
 
             for (StackTraceElement element : throwable.getStackTrace()) {
-                sb.append("\n");
+                sb.append("\r\n");
                 sb.append(element.toString());
             }
 
@@ -126,11 +123,40 @@ public abstract class CandyBarApplication extends MultiDexApplication {
     }
 
     public static class Configuration {
+
         public interface EmailBodyGenerator {
             String generate(List<Request> requests);
         }
 
+        public interface IconRequestHandler {
+            String submit(List<Request> requests, boolean isPremium);
+        }
+
+        public interface ConfigHandler {
+            String wallpaperJson(Context context);
+
+            String configJson(Context context);
+        }
+
+        public interface AnalyticsHandler {
+            void logEvent(String eventName, HashMap<String, Object> params);
+
+            void logException(Exception exception);
+        }
+
+        public interface FilterRequestHandler {
+            boolean filterRequest(Request request);
+        }
+
         private EmailBodyGenerator mEmailBodyGenerator;
+
+        private IconRequestHandler iconRequestHandler;
+
+        private ConfigHandler configHandler;
+
+        private AnalyticsHandler analyticsHandler;
+
+        private FilterRequestHandler mFilterRequestHandler = (request) -> true;
 
         private NavigationIcon mNavigationIcon = NavigationIcon.STYLE_1;
         private NavigationViewHeader mNavigationViewHeader = NavigationViewHeader.NORMAL;
@@ -142,6 +168,7 @@ public abstract class CandyBarApplication extends MultiDexApplication {
         private Style mAboutStyle = Style.PORTRAIT_FLAT_LANDSCAPE_CARD;
         private IconColor mIconColor = IconColor.PRIMARY_TEXT;
         private List<OtherApp> mOtherApps = null;
+        private List<DonationLink> mDonationLinks = null;
 
         private boolean mIsHighQualityPreviewEnabled = false;
         private boolean mIsColoredApplyCard = true;
@@ -151,6 +178,8 @@ public abstract class CandyBarApplication extends MultiDexApplication {
         private boolean mIsShowTabAllIcons = false;
         private String mTabAllIconsTitle = "All Icons";
         private String[] mCategoryForTabAllIcons = null;
+
+        private String[] mExcludedCategoryForSearch = null;
 
         private ShadowOptions mShadowOptions = new ShadowOptions();
         private boolean mIsDashboardThemingEnabled = true;
@@ -166,6 +195,31 @@ public abstract class CandyBarApplication extends MultiDexApplication {
 
         public Configuration setEmailBodyGenerator(EmailBodyGenerator emailBodyGenerator) {
             mEmailBodyGenerator = emailBodyGenerator;
+            return this;
+        }
+
+        public Configuration setIconRequestHandler(@NonNull IconRequestHandler iconRequestHandler) {
+            this.iconRequestHandler = iconRequestHandler;
+            return this;
+        }
+
+        public Configuration setConfigHandler(@NonNull ConfigHandler configHandler) {
+            this.configHandler = configHandler;
+            return this;
+        }
+
+        public Configuration setAnalyticsHandler(@NonNull AnalyticsHandler analyticsHandler) {
+            this.analyticsHandler = analyticsHandler;
+            return this;
+        }
+
+        public Configuration setFilterRequestHandler(@NonNull FilterRequestHandler filterRequestHandler) {
+            this.mFilterRequestHandler = filterRequestHandler;
+            return this;
+        }
+
+        public Configuration setDonationLinks(@NonNull DonationLink[] donationLinks) {
+            mDonationLinks = Arrays.asList(donationLinks);
             return this;
         }
 
@@ -245,6 +299,11 @@ public abstract class CandyBarApplication extends MultiDexApplication {
             return this;
         }
 
+        public Configuration setExcludedCategoryForSearch(@NonNull String[] categories) {
+            mExcludedCategoryForSearch = categories;
+            return this;
+        }
+
         public Configuration setShadowEnabled(boolean shadowEnabled) {
             mShadowOptions = new ShadowOptions(shadowEnabled);
             return this;
@@ -309,6 +368,57 @@ public abstract class CandyBarApplication extends MultiDexApplication {
             return mEmailBodyGenerator;
         }
 
+        public IconRequestHandler getIconRequestHandler() { return iconRequestHandler; }
+
+        public ConfigHandler getConfigHandler() {
+            if (configHandler == null) {
+                configHandler = new ConfigHandler() {
+                    @Override
+                    public String wallpaperJson(Context context) {
+                        return context.getString(R.string.wallpaper_json);
+                    }
+
+                    @Override
+                    public String configJson(Context context) {
+                        return context.getString(R.string.config_json);
+                    }
+                };
+            }
+            return configHandler;
+        }
+      
+        public AnalyticsHandler getAnalyticsHandler() {
+            if (analyticsHandler == null) {
+                analyticsHandler = new AnalyticsHandler() {
+                    @Override
+                    public void logEvent(String eventName, HashMap<String, Object> params) {
+                        StringBuilder sb = new StringBuilder();
+                        for (Map.Entry<String, Object> entry : params.entrySet()) {
+                            sb.append(" ");
+                            sb.append(entry.getKey());
+                            sb.append("=");
+                            sb.append(entry.getValue());
+                        }
+                        LogUtil.d("ANALYTICS EVENT: ".concat(eventName).concat(sb.toString()));
+                    }
+
+                    @Override
+                    public void logException(Exception exception) {
+                        LogUtil.e(exception.getStackTrace().toString());
+                    }
+                };
+            }
+            return analyticsHandler;
+        }
+
+        public FilterRequestHandler getFilterRequestHandler() {
+            return mFilterRequestHandler;
+        }
+
+        public List<DonationLink> getDonationLinks() {
+            return mDonationLinks;
+        }
+
         public NavigationIcon getNavigationIcon() {
             return mNavigationIcon;
         }
@@ -367,6 +477,10 @@ public abstract class CandyBarApplication extends MultiDexApplication {
 
         public String[] getCategoryForTabAllIcons() {
             return mCategoryForTabAllIcons;
+        }
+
+        public String[] getExcludedCategoryForSearch() {
+            return mExcludedCategoryForSearch;
         }
 
         @NonNull
@@ -495,10 +609,10 @@ public abstract class CandyBarApplication extends MultiDexApplication {
 
     public static class OtherApp {
 
-        private String mIcon;
-        private String mTitle;
-        private String mDescription;
-        private String mUrl;
+        private final String mIcon;
+        private final String mTitle;
+        private final String mDescription;
+        private final String mUrl;
 
         public OtherApp(String icon, String title, String description, String url) {
             mIcon = icon;
@@ -521,6 +635,12 @@ public abstract class CandyBarApplication extends MultiDexApplication {
 
         public String getUrl() {
             return mUrl;
+        }
+    }
+
+    public static class DonationLink extends OtherApp {
+        public DonationLink(String icon, String title, String description, String url) {
+            super(icon, title, description, url);
         }
     }
 }

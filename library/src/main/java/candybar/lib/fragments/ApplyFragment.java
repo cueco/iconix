@@ -3,8 +3,7 @@ package candybar.lib.fragments;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
-import android.content.res.TypedArray;
-import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -22,14 +21,16 @@ import com.danimahardhika.android.helpers.core.utils.LogUtil;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 
 import candybar.lib.R;
 import candybar.lib.adapters.LauncherAdapter;
 import candybar.lib.applications.CandyBarApplication;
+import candybar.lib.helpers.LauncherHelper;
 import candybar.lib.items.Icon;
 import candybar.lib.preferences.Preferences;
-import candybar.lib.utils.AlphanumComparator;
+import candybar.lib.utils.AsyncTaskBase;
 
 /*
  * CandyBar - Material Dashboard
@@ -52,7 +53,7 @@ import candybar.lib.utils.AlphanumComparator;
 public class ApplyFragment extends Fragment {
 
     private RecyclerView mRecyclerView;
-    private AsyncTask mAsyncTask;
+    private AsyncTaskBase mAsyncTask;
 
     @Nullable
     @Override
@@ -61,7 +62,7 @@ public class ApplyFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_apply, container, false);
         mRecyclerView = view.findViewById(R.id.recyclerview);
 
-        if (!Preferences.get(getActivity()).isToolbarShadowEnabled()) {
+        if (!Preferences.get(requireActivity()).isToolbarShadowEnabled()) {
             View shadow = view.findViewById(R.id.shadow);
             if (shadow != null) shadow.setVisibility(View.GONE);
         }
@@ -69,22 +70,27 @@ public class ApplyFragment extends Fragment {
     }
 
     @Override
-    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        CandyBarApplication.getConfiguration().getAnalyticsHandler().logEvent(
+                "view",
+                new HashMap<String, Object>() {{ put("section", "icon_apply"); }}
+        );
 
         mRecyclerView.setItemAnimator(new DefaultItemAnimator());
         mRecyclerView.setLayoutManager(new GridLayoutManager(getActivity(), 1));
 
         if (CandyBarApplication.getConfiguration().getApplyGrid() == CandyBarApplication.GridStyle.FLAT) {
-            int padding = getActivity().getResources().getDimensionPixelSize(R.dimen.card_margin);
+            int padding = requireActivity().getResources().getDimensionPixelSize(R.dimen.card_margin);
             mRecyclerView.setPadding(padding, padding, 0, 0);
         }
 
-        mAsyncTask = new LaunchersLoader().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        mAsyncTask = new LaunchersLoader().executeOnThreadPool();
     }
 
     @Override
-    public void onConfigurationChanged(Configuration newConfig) {
+    public void onConfigurationChanged(@NonNull Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
     }
 
@@ -98,7 +104,7 @@ public class ApplyFragment extends Fragment {
 
     private boolean isPackageInstalled(String pkg) {
         try {
-            PackageInfo packageInfo = getActivity().getPackageManager().getPackageInfo(
+            PackageInfo packageInfo = requireActivity().getPackageManager().getPackageInfo(
                     pkg, PackageManager.GET_ACTIVITIES);
             return packageInfo != null;
         } catch (Exception e) {
@@ -106,47 +112,53 @@ public class ApplyFragment extends Fragment {
         }
     }
 
-    private boolean isLauncherInstalled(String pkg1, String pkg2, String pkg3) {
-        return isPackageInstalled(pkg1) | isPackageInstalled(pkg2) | isPackageInstalled(pkg3);
+    private String getInstalledPackage(String[] pkgs) {
+        for (String pkg : pkgs) {
+            if (isPackageInstalled(pkg)) {
+                return pkg;
+            }
+        }
+        return null;
     }
 
-    private boolean isLauncherShouldBeAdded(String packageName) {
-        if (("com.dlto.atom.launcher").equals(packageName)) {
-            int id = getResources().getIdentifier("appmap", "xml", getActivity().getPackageName());
-            return id > 0;
-        } else if (("com.lge.launcher2").equals(packageName) ||
+    private boolean shouldLauncherBeAdded(String packageName) {
+        assert getActivity() != null;
+        if (("com.lge.launcher2").equals(packageName) ||
                 ("com.lge.launcher3").equals(packageName)) {
             int id = getResources().getIdentifier("theme_resources", "xml", getActivity().getPackageName());
             return id > 0;
         }
+        if ("com.oppo.launcher".equals(packageName)) return
+                (Build.VERSION.SDK_INT <= Build.VERSION_CODES.R)
+                        && (Build.MANUFACTURER.equalsIgnoreCase("OPPO")
+                        || Build.MANUFACTURER.equalsIgnoreCase("realme"));
+        if ("com.android.launcher".equals(packageName)) return
+                (Build.VERSION.SDK_INT > Build.VERSION_CODES.R)
+                        && (Build.MANUFACTURER.equalsIgnoreCase("OnePlus")
+                        || Build.MANUFACTURER.equalsIgnoreCase("OPPO")
+                        || Build.MANUFACTURER.equalsIgnoreCase("realme"))
+                || ((Build.VERSION.SDK_INT == Build.VERSION_CODES.R)
+                        && (Build.MANUFACTURER.equalsIgnoreCase("realme")
+                ));
         return true;
     }
 
-    private class LaunchersLoader extends AsyncTask<Void, Void, Boolean> {
+    private class LaunchersLoader extends AsyncTaskBase {
 
         private List<Icon> launchers;
 
         @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
+        protected void preRun() {
             launchers = new ArrayList<>();
         }
 
         @Override
-        protected Boolean doInBackground(Void... voids) {
-            while (!isCancelled()) {
+        protected boolean run() {
+            if (!isCancelled()) {
                 try {
                     Thread.sleep(1);
-                    String[] launcherNames = getResources().getStringArray(
-                            R.array.launcher_names);
-                    TypedArray launcherIcons = getResources().obtainTypedArray(
-                            R.array.launcher_icons);
-                    String[] launcherPackages1 = getResources().getStringArray(
-                            R.array.launcher_packages_1);
-                    String[] launcherPackages2 = getResources().getStringArray(
-                            R.array.launcher_packages_2);
-                    String[] launcherPackages3 = getResources().getStringArray(
-                            R.array.launcher_packages_3);
+
+                    LauncherHelper.Launcher[] dataLaunchers = LauncherHelper.Launcher.values();
                     String[] showableLauncherNames = getResources().getStringArray(
                             R.array.dashboard_launchers);
 
@@ -160,57 +172,35 @@ public class ApplyFragment extends Fragment {
                         showable.add(filtered_name);
                     }
 
-                    for (int i = 0; i < launcherNames.length; i++) {
-                        String lowercaseLauncherName = launcherNames[i].toLowerCase().replaceAll(" ", "_");
+                    for (LauncherHelper.Launcher value : dataLaunchers) {
+                        if (value.name == null) continue;
+                        if (value.packages == null) continue;
+
+                        String lowercaseLauncherName = value.name.toLowerCase().replaceAll(" ", "_");
 
                         if (!showable.contains(lowercaseLauncherName)) {
                             LogUtil.d("Launcher Excluded: " + lowercaseLauncherName);
                             continue;
                         }
 
-                        boolean isInstalled = isLauncherInstalled(
-                                launcherPackages1[i],
-                                launcherPackages2[i],
-                                launcherPackages3[i]);
+                        String installedPackage = getInstalledPackage(value.packages);
 
-                        int icon = R.drawable.ic_app_default;
-                        if (i < launcherIcons.length())
-                            icon = launcherIcons.getResourceId(i, icon);
-
-                        String launcherPackage = launcherPackages1[i];
-                        if (launcherPackages1[i].equals("com.lge.launcher2")) {
-                            boolean lghome3 = isPackageInstalled(launcherPackages2[i]);
-                            if (lghome3) launcherPackage = launcherPackages2[i];
-                        }
-
-                        Icon launcher = new Icon(launcherNames[i], icon, launcherPackage);
-                        if (isLauncherShouldBeAdded(launcherPackage)) {
-                            if (isInstalled) installed.add(launcher);
-                            else supported.add(launcher);
+                        Icon launcher = new Icon(value.name, value.icon, value.packages[0]);
+                        if (shouldLauncherBeAdded(value.packages[0])) {
+                            if (installedPackage != null) {
+                                installed.add(launcher);
+                                launcher.setPackageName(installedPackage);
+                            } else supported.add(launcher);
                         }
                     }
 
                     try {
-                        Collections.sort(installed, new AlphanumComparator() {
-                            @Override
-                            public int compare(Object o1, Object o2) {
-                                String s1 = ((Icon) o1).getTitle();
-                                String s2 = ((Icon) o2).getTitle();
-                                return super.compare(s1, s2);
-                            }
-                        });
+                        Collections.sort(installed, Icon.TitleComparator);
                     } catch (Exception ignored) {
                     }
 
                     try {
-                        Collections.sort(supported, new AlphanumComparator() {
-                            @Override
-                            public int compare(Object o1, Object o2) {
-                                String s1 = ((Icon) o1).getTitle();
-                                String s2 = ((Icon) o2).getTitle();
-                                return super.compare(s1, s2);
-                            }
-                        });
+                        Collections.sort(supported, Icon.TitleComparator);
                     } catch (Exception ignored) {
                     }
 
@@ -224,7 +214,6 @@ public class ApplyFragment extends Fragment {
                             R.string.apply_supported), -2, null));
                     launchers.addAll(supported);
 
-                    launcherIcons.recycle();
                     return true;
                 } catch (Exception e) {
                     LogUtil.e(Log.getStackTraceString(e));
@@ -235,13 +224,12 @@ public class ApplyFragment extends Fragment {
         }
 
         @Override
-        protected void onPostExecute(Boolean aBoolean) {
-            super.onPostExecute(aBoolean);
+        protected void postRun(boolean ok) {
             if (getActivity() == null) return;
             if (getActivity().isFinishing()) return;
 
             mAsyncTask = null;
-            if (aBoolean) {
+            if (ok) {
                 mRecyclerView.setAdapter(new LauncherAdapter(getActivity(), launchers));
             }
         }

@@ -1,7 +1,6 @@
 package candybar.lib.fragments.dialog;
 
 import android.app.Dialog;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.ListView;
@@ -25,6 +24,7 @@ import candybar.lib.R;
 import candybar.lib.adapters.dialog.CreditsAdapter;
 import candybar.lib.helpers.TypefaceHelper;
 import candybar.lib.items.Credit;
+import candybar.lib.utils.AsyncTaskBase;
 
 /*
  * CandyBar - Material Dashboard
@@ -47,7 +47,7 @@ import candybar.lib.items.Credit;
 public class CreditsFragment extends DialogFragment {
 
     private ListView mListView;
-    private AsyncTask mAsyncTask;
+    private AsyncTaskBase mAsyncTask;
     private int mType;
 
     private static final String TAG = "candybar.dialog.credits";
@@ -82,17 +82,16 @@ public class CreditsFragment extends DialogFragment {
     @NonNull
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
-        MaterialDialog.Builder builder = new MaterialDialog.Builder(getActivity());
-        builder.customView(R.layout.fragment_credits, false);
-        builder.typeface(
-                TypefaceHelper.getMedium(getActivity()),
-                TypefaceHelper.getRegular(getActivity()));
-        builder.title(getTitle(mType));
-        builder.positiveText(R.string.close);
-
-        MaterialDialog dialog = builder.build();
+        MaterialDialog dialog = new MaterialDialog.Builder(requireActivity())
+                .customView(R.layout.fragment_credits, false)
+                .typeface(TypefaceHelper.getMedium(requireActivity()), TypefaceHelper.getRegular(requireActivity()))
+                .title(getTitle(mType))
+                .positiveText(R.string.close)
+                .build();
         dialog.show();
         mListView = (ListView) dialog.findViewById(R.id.listview);
+        mAsyncTask = new CreditsLoader().executeOnThreadPool();
+
         return dialog;
     }
 
@@ -105,12 +104,6 @@ public class CreditsFragment extends DialogFragment {
     }
 
     @Override
-    public void onActivityCreated(Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
-        mAsyncTask = new CreditsLoader().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
-    }
-
-    @Override
     public void onDestroyView() {
         if (mAsyncTask != null) {
             mAsyncTask.cancel(true);
@@ -120,6 +113,7 @@ public class CreditsFragment extends DialogFragment {
 
     @NonNull
     private String getTitle(int type) {
+        if (getActivity() == null) return "";
         switch (type) {
             case TYPE_ICON_PACK_CONTRIBUTORS:
                 return getActivity().getResources().getString(R.string.about_contributors_title);
@@ -145,19 +139,18 @@ public class CreditsFragment extends DialogFragment {
         }
     }
 
-    private class CreditsLoader extends AsyncTask<Void, Void, Boolean> {
+    private class CreditsLoader extends AsyncTaskBase {
 
         private List<Credit> credits;
 
         @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
+        protected void preRun() {
             credits = new ArrayList<>();
         }
 
         @Override
-        protected Boolean doInBackground(Void... voids) {
-            while (!isCancelled()) {
+        protected boolean run() {
+            if (!isCancelled()) {
                 try {
                     Thread.sleep(1);
                     int res = getResource(mType);
@@ -187,13 +180,12 @@ public class CreditsFragment extends DialogFragment {
         }
 
         @Override
-        protected void onPostExecute(Boolean aBoolean) {
-            super.onPostExecute(aBoolean);
+        protected void postRun(boolean ok) {
             if (getActivity() == null) return;
             if (getActivity().isFinishing()) return;
 
             mAsyncTask = null;
-            if (aBoolean) {
+            if (ok) {
                 mListView.setAdapter(new CreditsAdapter(getActivity(), credits));
             } else {
                 dismiss();

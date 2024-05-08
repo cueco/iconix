@@ -16,6 +16,8 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.danimahardhika.android.helpers.core.utils.LogUtil;
 
+import java.util.HashMap;
+
 import candybar.lib.R;
 import candybar.lib.applications.CandyBarApplication;
 import candybar.lib.helpers.UrlHelper;
@@ -48,8 +50,9 @@ public class AboutSocialAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
         mUrls = urls;
     }
 
+    @NonNull
     @Override
-    public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(mContext).inflate(
                 R.layout.fragment_about_item_social, parent, false);
         if (CandyBarApplication.getConfiguration().getSocialIconColor() == CandyBarApplication.IconColor.ACCENT) {
@@ -60,10 +63,11 @@ public class AboutSocialAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     }
 
     @Override
-    public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
+    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
         SocialViewHolder socialViewHolder = (SocialViewHolder) holder;
         UrlHelper.Type type = UrlHelper.getType(mUrls[position]);
         Drawable drawable = UrlHelper.getSocialIcon(mContext, type);
+        socialViewHolder.itemView.setContentDescription(R.string.about_item_social_content_description + type.toString());
 
         if (drawable != null && type != UrlHelper.Type.INVALID) {
             socialViewHolder.image.setImageDrawable(drawable);
@@ -92,9 +96,17 @@ public class AboutSocialAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
         @Override
         public void onClick(View view) {
             int id = view.getId();
-            int position = getAdapterPosition();
+            int position = getBindingAdapterPosition();
             if (position < 0 || position > mUrls.length) return;
 
+            CandyBarApplication.getConfiguration().getAnalyticsHandler().logEvent(
+                    "click",
+                    new HashMap<String, Object>() {{
+                        put("section", "about");
+                        put("action", "open_social");
+                        put("url", mUrls[position]);
+                    }}
+            );
             if (id == R.id.image) {
                 UrlHelper.Type type = UrlHelper.getType(mUrls[position]);
                 if (type == UrlHelper.Type.INVALID) return;

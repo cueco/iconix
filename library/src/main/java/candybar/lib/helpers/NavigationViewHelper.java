@@ -57,9 +57,14 @@ public class NavigationViewHelper {
             menuItem.setVisible(false);
     }
 
-    public static void hideScrollBar(NavigationView navigationView) {
-        NavigationView navigationMenuView = (NavigationView) navigationView.getChildAt(0);
-        if (navigationMenuView != null)
-            navigationMenuView.setVerticalScrollBarEnabled(true);
+    public static void initPresets(NavigationView navigationView) {
+        Context context = ContextHelper.getBaseContext(navigationView);
+
+        MenuItem menuItem = navigationView.getMenu().findItem(R.id.navigation_view_presets);
+        if (menuItem == null) return;
+
+        if (PresetsHelper.getPresetsCount(context) == 0) {
+            menuItem.setVisible(false);
+        }
     }
 }

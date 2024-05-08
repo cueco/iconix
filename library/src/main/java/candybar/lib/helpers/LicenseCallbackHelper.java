@@ -1,19 +1,18 @@
 package candybar.lib.helpers;
 
+import android.app.Activity;
 import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.afollestad.materialdialogs.MaterialDialog;
-import com.danimahardhika.android.helpers.core.FileHelper;
 import com.danimahardhika.android.helpers.license.LicenseCallback;
 import com.danimahardhika.android.helpers.license.LicenseHelper;
 
-import java.io.File;
-
 import candybar.lib.R;
-import candybar.lib.fragments.dialog.ChangelogFragment;
 import candybar.lib.preferences.Preferences;
 
 /*
@@ -37,46 +36,53 @@ import candybar.lib.preferences.Preferences;
 public class LicenseCallbackHelper implements LicenseCallback {
 
     private final Context mContext;
+    private final Runnable mCallback;
     private final MaterialDialog mDialog;
 
-    public LicenseCallbackHelper(@NonNull Context context) {
+    public LicenseCallbackHelper(@NonNull Context context, Runnable callback) {
         mContext = context;
+        mCallback = callback;
 
-        MaterialDialog.Builder builder = new MaterialDialog.Builder(mContext);
-        builder.typeface(
-                TypefaceHelper.getMedium(mContext),
-                TypefaceHelper.getRegular(mContext));
-        builder.content(R.string.license_checking)
-                .progress(true, 0);
-
-        mDialog = builder.build();
+        mDialog = new MaterialDialog.Builder(mContext)
+                .typeface(TypefaceHelper.getMedium(mContext), TypefaceHelper.getRegular(mContext))
+                .content(R.string.license_checking)
+                .progress(true, 0)
+                .build();
         mDialog.setCancelable(false);
         mDialog.setCanceledOnTouchOutside(false);
     }
 
     @Override
     public void onLicenseCheckStart() {
-        mDialog.show();
+        if (!((Activity) mContext).isFinishing() && !((Activity) mContext).isDestroyed()) {
+            mDialog.show();
+        }
     }
 
     @Override
     public void onLicenseCheckFinished(LicenseHelper.Status status) {
-        mDialog.dismiss();
-        if (status == LicenseHelper.Status.RETRY) {
-            showRetryDialog();
-            return;
-        }
+        // Sometimes `onLicenseCheckFinished` gets called just after `onLicenseCheckStart`
+        // and it messes up the layout, so delay is the workaround
 
-        showLicenseDialog(status);
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            if (!((Activity) mContext).isFinishing() && !((Activity) mContext).isDestroyed()) {
+                mDialog.dismiss();
+
+                if (status == LicenseHelper.Status.RETRY) {
+                    showRetryDialog();
+                    return;
+                }
+
+                showLicenseDialog(status);
+            }
+        }, 1000);
     }
 
     private void showLicenseDialog(LicenseHelper.Status status) {
         int message = status == LicenseHelper.Status.SUCCESS ?
                 R.string.license_check_success : R.string.license_check_failed;
         new MaterialDialog.Builder(mContext)
-                .typeface(
-                        TypefaceHelper.getMedium(mContext),
-                        TypefaceHelper.getRegular(mContext))
+                .typeface(TypefaceHelper.getMedium(mContext), TypefaceHelper.getRegular(mContext))
                 .title(R.string.license_check)
                 .content(message)
                 .positiveText(R.string.close)
@@ -91,9 +97,7 @@ public class LicenseCallbackHelper implements LicenseCallback {
 
     private void showRetryDialog() {
         new MaterialDialog.Builder(mContext)
-                .typeface(
-                        TypefaceHelper.getMedium(mContext),
-                        TypefaceHelper.getRegular(mContext))
+                .typeface(TypefaceHelper.getMedium(mContext), TypefaceHelper.getRegular(mContext))
                 .title(R.string.license_check)
                 .content(R.string.license_check_retry)
                 .positiveText(R.string.close)
@@ -104,15 +108,9 @@ public class LicenseCallbackHelper implements LicenseCallback {
     }
 
     private void onLicenseChecked(LicenseHelper.Status status) {
-        Preferences.get(mContext).setFirstRun(false);
         if (status == LicenseHelper.Status.SUCCESS) {
             Preferences.get(mContext).setLicensed(true);
-
-            if (Preferences.get(mContext).isNewVersion()) {
-                ChangelogFragment.showChangelog(((AppCompatActivity) mContext).getSupportFragmentManager());
-                File cache = mContext.getCacheDir();
-                FileHelper.clearDirectory(cache);
-            }
+            mCallback.run();
         } else if (status == LicenseHelper.Status.FAILED) {
             Preferences.get(mContext).setLicensed(false);
             ((AppCompatActivity) mContext).finish();

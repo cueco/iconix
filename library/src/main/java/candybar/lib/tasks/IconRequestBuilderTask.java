@@ -5,7 +5,6 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -18,7 +17,6 @@ import java.io.File;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Executor;
 
 import candybar.lib.R;
 import candybar.lib.activities.CandyBarMainActivity;
@@ -30,6 +28,7 @@ import candybar.lib.fragments.dialog.IntentChooserFragment;
 import candybar.lib.helpers.DeviceHelper;
 import candybar.lib.items.Request;
 import candybar.lib.preferences.Preferences;
+import candybar.lib.utils.AsyncTaskBase;
 import candybar.lib.utils.Extras;
 import candybar.lib.utils.listeners.RequestListener;
 /*
@@ -50,37 +49,21 @@ import candybar.lib.utils.listeners.RequestListener;
  * limitations under the License.
  */
 
-public class IconRequestBuilderTask extends AsyncTask<Void, Void, Boolean> {
+public class IconRequestBuilderTask extends AsyncTaskBase {
 
-    private WeakReference<Context> mContext;
-    private WeakReference<IconRequestBuilderCallback> mCallback;
+    private final WeakReference<Context> mContext;
+    private final WeakReference<IconRequestBuilderCallback> mCallback;
     private String mEmailBody;
     private Extras.Error mError;
 
-    private IconRequestBuilderTask(Context context) {
+    public IconRequestBuilderTask(@NonNull Context context, IconRequestBuilderCallback callback) {
         mContext = new WeakReference<>(context);
-    }
-
-    public IconRequestBuilderTask callback(IconRequestBuilderCallback callback) {
         mCallback = new WeakReference<>(callback);
-        return this;
-    }
-
-    public AsyncTask start() {
-        return start(SERIAL_EXECUTOR);
-    }
-
-    public AsyncTask start(@NonNull Executor executor) {
-        return executeOnExecutor(executor);
-    }
-
-    public static IconRequestBuilderTask prepare(@NonNull Context context) {
-        return new IconRequestBuilderTask(context);
     }
 
     @Override
-    protected Boolean doInBackground(Void... voids) {
-        while (!isCancelled()) {
+    protected boolean run() {
+        if (!isCancelled()) {
             try {
                 Thread.sleep(1);
                 if (RequestFragment.sSelectedRequests == null) {
@@ -108,7 +91,7 @@ public class IconRequestBuilderTask extends AsyncTask<Void, Void, Boolean> {
                     }
 
                     if (CandyBarApplication.sRequestProperty.getProductId() != null) {
-                        stringBuilder.append("\nProduct Id: ")
+                        stringBuilder.append("\r\nProduct Id: ")
                                 .append(CandyBarApplication.sRequestProperty.getProductId());
                     }
                 }
@@ -134,21 +117,22 @@ public class IconRequestBuilderTask extends AsyncTask<Void, Void, Boolean> {
                         if (emailBodyGeneratorEnabled) {
                             requestsForGenerator.add(request);
                         } else {
-                            stringBuilder.append("\n\n")
+                            stringBuilder.append("\r\n\r\n")
                                     .append(request.getName())
-                                    .append("\n")
+                                    .append("\r\n")
                                     .append(request.getActivity())
-                                    .append("\n")
+                                    .append("\r\n")
                                     .append("https://play.google.com/store/apps/details?id=")
                                     .append(request.getPackageName());
                         }
                     }
                 }
 
-                mEmailBody = stringBuilder.toString();
+
                 if (emailBodyGeneratorEnabled) {
-                    mEmailBody += "\n\n" + emailBodyGenerator.generate(requestsForGenerator);
+                    stringBuilder.append("\r\n\r\n").append(emailBodyGenerator.generate(requestsForGenerator));
                 }
+                mEmailBody = stringBuilder.toString();
                 return true;
             } catch (Exception e) {
                 CandyBarApplication.sRequestProperty = null;
@@ -161,11 +145,10 @@ public class IconRequestBuilderTask extends AsyncTask<Void, Void, Boolean> {
     }
 
     @Override
-    protected void onPostExecute(Boolean aBoolean) {
-        super.onPostExecute(aBoolean);
-        if (aBoolean) {
+    protected void postRun(boolean ok) {
+        if (ok) {
             try {
-                if (mCallback != null && mCallback.get() != null)
+                if (mCallback.get() != null)
                     mCallback.get().onFinished();
 
                 RequestListener listener = (RequestListener) mContext.get();
@@ -187,15 +170,15 @@ public class IconRequestBuilderTask extends AsyncTask<Void, Void, Boolean> {
     private Intent getIntent(ComponentName name, String emailBody) {
         try {
             Intent intent = new Intent(Intent.ACTION_SEND);
-            intent = addIntentExtra(intent, emailBody);
+            addIntentExtra(intent, emailBody);
             intent.setComponent(name);
-            intent.addCategory(Intent.CATEGORY_LAUNCHER);
+            if (android.os.Build.VERSION.SDK_INT < 32) { intent.addCategory(Intent.CATEGORY_LAUNCHER); }
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             return intent;
         } catch (IllegalArgumentException e) {
             try {
                 Intent intent = new Intent(Intent.ACTION_SEND);
-                intent = addIntentExtra(intent, emailBody);
+                addIntentExtra(intent, emailBody);
                 return intent;
             } catch (ActivityNotFoundException e1) {
                 LogUtil.e(Log.getStackTraceString(e1));
@@ -204,7 +187,7 @@ public class IconRequestBuilderTask extends AsyncTask<Void, Void, Boolean> {
         return null;
     }
 
-    private Intent addIntentExtra(@NonNull Intent intent, String emailBody) {
+    private void addIntentExtra(@NonNull Intent intent, String emailBody) {
         intent.setType("application/zip");
 
         if (CandyBarApplication.sZipPath != null) {
@@ -220,9 +203,6 @@ public class IconRequestBuilderTask extends AsyncTask<Void, Void, Boolean> {
         String appName = mContext.get().getResources().getString(R.string.app_name);
 
         String regularRequestSubject = mContext.get().getResources().getString(R.string.regular_request_email_subject);
-        // Fallback to request_email_subject
-        if (regularRequestSubject.length() == 0)
-            regularRequestSubject = mContext.get().getResources().getString(R.string.request_email_subject);
         if (regularRequestSubject.length() == 0) regularRequestSubject = appName + " Icon Request";
 
         String premiumRequestSubject = mContext.get().getResources().getString(R.string.premium_request_email_subject);
@@ -236,16 +216,12 @@ public class IconRequestBuilderTask extends AsyncTask<Void, Void, Boolean> {
 
         String subject = Preferences.get(mContext.get()).isPremiumRequest() ? premiumRequestSubject : regularRequestSubject;
         String emailAddress = Preferences.get(mContext.get()).isPremiumRequest() ? premiumRequestEmail : regularRequestEmail;
-        // Fallback to dev_email
-        if (emailAddress.length() == 0)
-            emailAddress = mContext.get().getResources().getString(R.string.dev_email);
 
         intent.putExtra(Intent.EXTRA_EMAIL, new String[]{emailAddress});
         intent.putExtra(Intent.EXTRA_SUBJECT, subject);
         intent.putExtra(Intent.EXTRA_TEXT, emailBody);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK |
                 Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
-        return intent;
     }
 
     public interface IconRequestBuilderCallback {

@@ -1,11 +1,11 @@
-// Remove '/*' and '*/' to Enable OneSignal
+// TODO: Remove `/*` and `*/` below to enable OneSignal
 /*
 buildscript {
     repositories {
         maven { url 'https://plugins.gradle.org/m2/' }
     }
     dependencies {
-        classpath 'gradle.plugin.com.onesignal:onesignal-gradle-plugin:0.12.6'
+        classpath 'gradle.plugin.com.onesignal:onesignal-gradle-plugin:0.14.0'
     }
 }
 apply plugin: 'com.onesignal.androidsdk.onesignal-gradle-plugin'
@@ -19,36 +19,38 @@ android {
             keyPassword 'candybar'
             storeFile file('candybar.jks')
             storePassword 'candybar'
+
+            v1SigningEnabled true
+            v2SigningEnabled true
         }
     }
 
-    compileSdkVersion rootProject.ext.CompileSdk
+    compileSdk rootProject.ext.CompileSdk
 
-    android.applicationVariants.all { variant ->
-        variant.outputs.all { output ->
-            outputFileName = "candybar.apk"
-        }
-    }
+    namespace 'com.candybar.dev'
 
     defaultConfig {
-        applicationId "com.candybar.dev"
+        applicationId 'com.candybar.dev'
         minSdkVersion rootProject.ext.MinSdk
         targetSdkVersion rootProject.ext.TargetSdk
-        versionCode rootProject.ext.VersionCode
+        versionCode rootProject.ext.VersionCode * 10 + 0
         versionName rootProject.ext.VersionName
-        multiDexEnabled true
 
-        // Remove '/*' and '*/' below to enable OneSignal
-        /*
-        manifestPlaceholders = [
-          onesignal_app_id: 'ONESIGNAL APP ID',
-          onesignal_google_project_number: 'REMOTE'
-        ]
-        */
+        // This code loads the license key from `local.properties` file
+        // and saves it as build config field named "LICENSE_KEY"
+        String licenseKey = ''
+        Properties props = new Properties()
+        File propFile = rootProject.file('local.properties')
+        if (propFile.exists()) {
+            props.load(propFile.newDataInputStream())
+            licenseKey = props.get('license_key', '')
+        }
+        buildConfigField 'String', 'LICENSE_KEY', "\"$licenseKey\""
     }
 
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
@@ -58,11 +60,19 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+
+    buildFeatures {
+        buildConfig = true
+    }
+
+    lint {
+        abortOnError false
+    }
 }
 
 dependencies {
     implementation project(':library')
 
-    // Remove '//' below to Enable OneSignal
-    //implementation 'com.onesignal:OneSignal:3.12.4'
+    // TODO: Remove `//` below to enable OneSignal
+    //implementation 'com.onesignal:OneSignal:[4.0.0, 4.99.99]'
 }

@@ -19,15 +19,37 @@
   -->
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="candybar.lib">
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.SET_WALLPAPER" />
-    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.SET_WALLPAPER" />
+    <uses-permission android:name="android.permission.SET_ALARM" />
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28"
+        tools:ignore="ScopedStorage" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission
+        android:name="android.permission.WRITE_SETTINGS"
+        tools:ignore="ProtectedPermissions" />
+
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.HOME" />
+        </intent>
+
+        <package android:name="com.android.bluetooth" />
+        <package android:name="com.android.cellbroadcastreceiver" />
+    </queries>
 
     <application>
         <meta-data
@@ -38,15 +60,13 @@
             android:name="candybar.lib.activities.CandyBarCrashReport"
             android:launchMode="singleInstance"
             android:noHistory="true"
-            android:theme="@style/Theme.AppCompat.Light.Dialog" />
+            android:theme="@style/Theme.MaterialComponents.Light.Dialog" />
 
         <activity
             android:name="candybar.lib.activities.CandyBarWallpaperActivity"
             android:launchMode="singleTop"
-            android:theme="@style/WallpaperTheme"
+            android:theme="@style/CandyBar.Theme.Wallpaper"
             android:configChanges="uiMode|orientation|keyboardHidden|screenSize" />
-
-        <service android:name="candybar.lib.services.CandyBarWallpapersService" />
 
         <service
             android:name="candybar.lib.services.CandyBarService"

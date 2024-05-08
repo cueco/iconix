@@ -1,31 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    tools:ignore="MissingPrefix"
     android:id="@+id/card"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginRight="@dimen/content_padding"
     android:layout_marginEnd="@dimen/content_padding"
     android:layout_marginBottom="@dimen/content_padding"
-    app:cardBackgroundColor="?attr/card_background"
+    app:cardBackgroundColor="?cb_cardBackground"
     app:cardElevation="@dimen/card_elevation"
     app:cardUseCompatPadding="@bool/card_use_compat_padding"
     app:cardCornerRadius="@dimen/card_corner_radius"
-    app:strokeColor="?card_stroke">
+    app:strokeColor="?cb_cardStroke">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:background="?attr/card_background">
+        android:background="?cb_cardBackground">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="?attr/card_background"
+            android:background="?cb_cardBackground"
             android:id="@+id/contributors">
 
             <TextView
@@ -39,7 +37,7 @@
                 android:textSize="@dimen/text_content_title"
                 android:background="?attr/selectableItemBackground"
                 android:theme="@style/RippleStyle"
-                fontPath="fonts/Font-Medium.ttf" />
+                app:fontFamily="@font/medium" />
 
             <View
                 android:layout_width="match_parent"
@@ -52,7 +50,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="?attr/card_background"
+            android:background="?cb_cardBackground"
             android:id="@+id/privacy_policy">
 
             <TextView
@@ -66,7 +64,7 @@
                 android:textSize="@dimen/text_content_title"
                 android:background="?attr/selectableItemBackground"
                 android:theme="@style/RippleStyle"
-                fontPath="fonts/Font-Medium.ttf" />
+                app:fontFamily="@font/medium" />
 
             <View
                 android:layout_width="match_parent"
@@ -79,12 +77,11 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="?attr/card_background"
+            android:background="?cb_cardBackground"
             android:id="@+id/terms">
 
             <TextView
                 android:id="@+id/terms_title"
-                fontPath="fonts/Font-Medium.ttf"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="?attr/selectableItemBackground"
@@ -93,7 +90,8 @@
                 android:padding="@dimen/content_margin"
                 android:textColor="?android:attr/textColorPrimary"
                 android:textSize="@dimen/text_content_title"
-                android:theme="@style/RippleStyle" />
+                android:theme="@style/RippleStyle"
+                app:fontFamily="@font/medium" />
 
         </LinearLayout>
 

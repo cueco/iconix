@@ -16,15 +16,16 @@
         android:paddingEnd="@dimen/content_padding"
         android:clipToPadding="false"
         app:tabIndicator="@drawable/tab_indicator"
-        app:tabIndicatorColor="?attr/tab_indicator"
-        app:tabSelectedTextColor="?attr/tab_text_selected"
-        app:tabTextColor="?attr/tab_text"
+        app:tabIndicatorColor="?cb_tabIndicator"
+        app:tabSelectedTextColor="?cb_tabTextSelected"
+        app:tabTextColor="?cb_tabText"
+        app:tabIconTint="@color/tab_icon"
         app:tabIndicatorHeight="3dp"
         app:tabPadding="@dimen/content_padding"
         app:tabMode="scrollable"
-        app:tabRippleColor="?colorAccent" />
+        app:tabRippleColor="?colorSecondary" />
 
-    <androidx.viewpager.widget.ViewPager
+    <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/pager"
         android:layout_width="match_parent"
         android:layout_height="match_parent"

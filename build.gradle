@@ -1,32 +1,33 @@
 buildscript {
     repositories {
-        jcenter()
+        mavenCentral()
         google()
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:4.0.2'
+        classpath 'com.android.tools.build:gradle:8.2.1'
     }
 }
 
 allprojects {
     repositories {
         mavenCentral()
-        jcenter()
         google()
-        maven { url "https://jitpack.io" }
+        maven { url 'https://jitpack.io' }
         maven { url 'https://maven.google.com' }
-        flatDir { dirs 'libs' }
     }
 
     rootProject.ext {
-        VersionCode = 390
-        VersionName = "3.9.0"
+        def major = 3
+        def minor = 19
+        def patch = 0
 
-        MinSdk = 15
-        TargetSdk = 29
-        CompileSdk = 29
-        SupportLibrary = "27.1.1"
+        VersionCode = major * 10000 + minor * 100 + patch
+        VersionName = "$major.$minor.$patch"
+
+        MinSdk = 21
+        TargetSdk = 34
+        CompileSdk = 34
     }
 }
 

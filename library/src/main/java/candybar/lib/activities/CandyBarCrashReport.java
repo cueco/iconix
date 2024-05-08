@@ -55,10 +55,7 @@ public class CandyBarCrashReport extends AppCompatActivity {
             String deviceInfo = DeviceHelper.getDeviceInfoForCrashReport(this);
 
             String message = getResources().getString(R.string.crash_report_message, getResources().getString(R.string.app_name));
-            String emailAddress = getResources().getString(R.string.regular_request_email).length() > 0
-                    ? getResources().getString(R.string.regular_request_email)
-                    // Fallback to dev_email
-                    : getResources().getString(R.string.dev_email);
+            String emailAddress = getResources().getString(R.string.regular_request_email);
 
             new MaterialDialog.Builder(this)
                     .title(R.string.crash_report)
@@ -73,7 +70,7 @@ public class CandyBarCrashReport extends AppCompatActivity {
                         intent.putExtra(Intent.EXTRA_EMAIL, new String[]{emailAddress});
                         intent.putExtra(Intent.EXTRA_SUBJECT, "CandyBar: Crash Report");
 
-                        intent = prepareUri(deviceInfo, stackTrace, intent);
+                        prepareUri(deviceInfo, stackTrace, intent);
 
                         startActivity(Intent.createChooser(intent,
                                 getResources().getString(R.string.app_client)));
@@ -86,19 +83,18 @@ public class CandyBarCrashReport extends AppCompatActivity {
         }
     }
 
-    private Intent prepareUri(String deviceInfo, String stackTrace, Intent intent) {
+    private void prepareUri(String deviceInfo, String stackTrace, Intent intent) {
         File crashLog = ReportBugsHelper.buildCrashLog(this, stackTrace);
         if (crashLog != null) {
             Uri uri = FileHelper.getUriFromFile(this, getPackageName(), crashLog);
             if (uri != null) {
-                intent.putExtra(Intent.EXTRA_TEXT, deviceInfo + "\n");
+                intent.putExtra(Intent.EXTRA_TEXT, deviceInfo + "\r\n");
                 intent.putExtra(Intent.EXTRA_STREAM, uri);
                 intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                return intent;
+                return;
             }
         }
 
         intent.putExtra(Intent.EXTRA_TEXT, deviceInfo + stackTrace);
-        return intent;
     }
 }

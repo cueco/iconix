@@ -1,7 +1,11 @@
 package candybar.lib.fragments;
 
+import static candybar.lib.helpers.DrawableHelper.getPackageIcon;
+import static candybar.lib.helpers.DrawableHelper.getReqIconBase64;
+
+import android.content.res.Resources;
 import android.graphics.drawable.Drawable;
-import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -9,6 +13,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.DefaultItemAnimator;
@@ -23,6 +28,7 @@ import java.io.File;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import candybar.lib.R;
@@ -34,14 +40,12 @@ import candybar.lib.helpers.IconsHelper;
 import candybar.lib.helpers.LocaleHelper;
 import candybar.lib.helpers.RequestHelper;
 import candybar.lib.helpers.TypefaceHelper;
-import candybar.lib.helpers.WallpaperHelper;
 import candybar.lib.items.Language;
 import candybar.lib.items.Request;
 import candybar.lib.items.Setting;
 import candybar.lib.preferences.Preferences;
+import candybar.lib.utils.AsyncTaskBase;
 import candybar.lib.utils.listeners.RequestListener;
-
-import static candybar.lib.helpers.DrawableHelper.getReqIcon;
 
 /*
  * CandyBar - Material Dashboard
@@ -72,7 +76,7 @@ public class SettingsFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_settings, container, false);
         mRecyclerView = view.findViewById(R.id.recyclerview);
 
-        if (!Preferences.get(getActivity()).isToolbarShadowEnabled()) {
+        if (!Preferences.get(requireActivity()).isToolbarShadowEnabled()) {
             View shadow = view.findViewById(R.id.shadow);
             if (shadow != null) shadow.setVisibility(View.GONE);
         }
@@ -80,8 +84,14 @@ public class SettingsFragment extends Fragment {
     }
 
     @Override
-    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        CandyBarApplication.getConfiguration().getAnalyticsHandler().logEvent(
+                "view",
+                new HashMap<String, Object>() {{ put("section", "settings"); }}
+        );
+
         mRecyclerView.setItemAnimator(new DefaultItemAnimator());
         mRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
 
@@ -99,13 +109,12 @@ public class SettingsFragment extends Fragment {
                 }
             }
             if (index > -1 && index < premiumRequestProductsCount.length) {
-                if (!Preferences.get(getActivity()).isPremiumRequest()) {
-                    Preferences.get(getActivity()).setPremiumRequestProductId(productId);
-                    Preferences.get(getActivity()).setPremiumRequestCount(
-                            premiumRequestProductsCount[index]);
-                    Preferences.get(getActivity()).setPremiumRequestTotal(
-                            premiumRequestProductsCount[index]);
-                    Preferences.get(getActivity()).setPremiumRequest(true);
+                final Preferences preferences = Preferences.get(requireActivity());
+                if (!preferences.isPremiumRequest()) {
+                    preferences.setPremiumRequestProductId(productId);
+                    preferences.setPremiumRequestCount(premiumRequestProductsCount[index]);
+                    preferences.setPremiumRequestTotal(premiumRequestProductsCount[index]);
+                    preferences.setPremiumRequest(true);
                 }
             }
         }
@@ -118,118 +127,117 @@ public class SettingsFragment extends Fragment {
     private void initSettings() {
         List<Setting> settings = new ArrayList<>();
 
-        double cache = (double) FileHelper.getDirectorySize(getActivity().getCacheDir()) / FileHelper.MB;
+        double cache = (double) FileHelper.getDirectorySize(requireActivity().getCacheDir()) / FileHelper.MB;
         NumberFormat formatter = new DecimalFormat("#0.00");
+        final Resources resources = requireActivity().getResources();
 
         settings.add(new Setting(R.drawable.ic_toolbar_storage,
-                getActivity().getResources().getString(R.string.pref_data_header),
+                resources.getString(R.string.pref_data_header),
                 "", "", "", Setting.Type.HEADER));
 
         settings.add(new Setting(-1, "",
-                getActivity().getResources().getString(R.string.pref_data_cache),
-                getActivity().getResources().getString(R.string.pref_data_cache_desc),
-                String.format(getActivity().getResources().getString(R.string.pref_data_cache_size),
+                resources.getString(R.string.pref_data_cache),
+                resources.getString(R.string.pref_data_cache_desc),
+                resources.getString(R.string.pref_data_cache_size,
                         formatter.format(cache) + " MB"),
                 Setting.Type.CACHE));
 
-        if (getActivity().getResources().getBoolean(R.bool.enable_icon_request) ||
-                Preferences.get(getActivity()).isPremiumRequestEnabled() &&
-                        !getActivity().getResources().getBoolean(R.bool.enable_icon_request_limit)) {
+        if (resources.getBoolean(R.bool.enable_icon_request) ||
+                Preferences.get(requireActivity()).isPremiumRequestEnabled() &&
+                        !resources.getBoolean(R.bool.enable_icon_request_limit)) {
             settings.add(new Setting(-1, "",
-                    getActivity().getResources().getString(R.string.pref_data_request),
-                    getActivity().getResources().getString(R.string.pref_data_request_desc),
+                    resources.getString(R.string.pref_data_request),
+                    resources.getString(R.string.pref_data_request_desc),
                     "", Setting.Type.ICON_REQUEST));
         }
 
-        if (Preferences.get(getActivity()).isPremiumRequestEnabled()) {
+        if (Preferences.get(requireActivity()).isPremiumRequestEnabled()) {
             settings.add(new Setting(R.drawable.ic_toolbar_premium_request,
-                    getActivity().getResources().getString(R.string.pref_premium_request_header),
+                    resources.getString(R.string.pref_premium_request_header),
                     "", "", "", Setting.Type.HEADER));
 
-            settings.add(new Setting(-1, "",
-                    getActivity().getResources().getString(R.string.pref_premium_request_restore),
-                    getActivity().getResources().getString(R.string.pref_premium_request_restore_desc),
-                    "", Setting.Type.RESTORE));
+            if (requireActivity().getResources().getBoolean(R.bool.enable_restore_purchases)) {
+                settings.add(new Setting(-1, "",
+                        resources.getString(R.string.pref_premium_request_restore),
+                        resources.getString(R.string.pref_premium_request_restore_desc),
+                        "", Setting.Type.RESTORE));
+            }
 
             settings.add(new Setting(-1, "",
-                    getActivity().getResources().getString(R.string.pref_premium_request_rebuild),
-                    getActivity().getResources().getString(R.string.pref_premium_request_rebuild_desc),
+                    resources.getString(R.string.pref_premium_request_rebuild),
+                    resources.getString(R.string.pref_premium_request_rebuild_desc),
                     "", Setting.Type.PREMIUM_REQUEST));
         }
 
         if (CandyBarApplication.getConfiguration().isDashboardThemingEnabled()) {
             settings.add(new Setting(R.drawable.ic_toolbar_theme,
-                    getActivity().getResources().getString(R.string.pref_theme_header),
+                    resources.getString(R.string.pref_theme_header),
                     "", "", "", Setting.Type.HEADER));
 
             settings.add(new Setting(-1, "",
-                    Preferences.get(getActivity()).getTheme().displayName(getActivity()),
+                    Preferences.get(requireActivity()).getTheme().displayName(requireActivity()),
                     "", "", Setting.Type.THEME));
-        }
 
-        if (WallpaperHelper.getWallpaperType(getActivity()) == WallpaperHelper.CLOUD_WALLPAPERS) {
-            settings.add(new Setting(R.drawable.ic_toolbar_wallpapers,
-                    getActivity().getResources().getString(R.string.pref_wallpaper_header),
-                    "", "", "", Setting.Type.HEADER));
-
-            settings.add(new Setting(-1, "",
-                    getActivity().getResources().getString(R.string.pref_wallpaper_location),
-                    WallpaperHelper.getDefaultWallpapersDirectory(getActivity()).toString(), "",
-                    Setting.Type.WALLPAPER));
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                settings.add(new Setting(-1, "", "Material You", "", "", Setting.Type.MATERIAL_YOU));
+            }
         }
 
         settings.add(new Setting(R.drawable.ic_toolbar_language,
-                getActivity().getResources().getString(R.string.pref_language_header),
+                resources.getString(R.string.pref_language_header),
                 "", "", "", Setting.Type.HEADER));
 
-        Language language = LocaleHelper.getCurrentLanguage(getActivity());
+        Language language = LocaleHelper.getCurrentLanguage(requireActivity());
         settings.add(new Setting(-1, "",
                 language.getName(),
                 "", "", Setting.Type.LANGUAGE));
 
         settings.add(new Setting(R.drawable.ic_toolbar_others,
-                getActivity().getResources().getString(R.string.pref_others_header),
+                resources.getString(R.string.pref_others_header),
                 "", "", "", Setting.Type.HEADER));
 
         settings.add(new Setting(-1, "",
-                getActivity().getResources().getString(R.string.pref_others_changelog),
+                resources.getString(R.string.pref_others_changelog),
                 "", "", Setting.Type.CHANGELOG));
 
-        if (getActivity().getResources().getBoolean(R.bool.enable_apply)) {
+        if (resources.getBoolean(R.bool.enable_apply)) {
             settings.add(new Setting(-1, "",
-                    getActivity().getResources().getString(R.string.pref_others_report_bugs),
+                    resources.getString(R.string.pref_others_report_bugs),
                     "", "", Setting.Type.REPORT_BUGS));
         }
 
-        if (getActivity().getResources().getBoolean(R.bool.show_intro)) {
+        if (resources.getBoolean(R.bool.show_intro)) {
             settings.add(new Setting(-1, "",
-                    getActivity().getResources().getString(R.string.pref_others_reset_tutorial),
+                    resources.getString(R.string.pref_others_reset_tutorial),
                     "", "", Setting.Type.RESET_TUTORIAL));
         }
 
-        mRecyclerView.setAdapter(new SettingsAdapter(getActivity(), settings));
+        mRecyclerView.setAdapter(new SettingsAdapter(requireActivity(), settings));
     }
 
     public void rebuildPremiumRequest() {
         new PremiumRequestRebuilder().execute();
     }
 
-    private class PremiumRequestRebuilder extends AsyncTask<Void, Void, Boolean> {
+    private class PremiumRequestRebuilder extends AsyncTaskBase {
 
         private MaterialDialog dialog;
-        private final boolean isArctic = RequestHelper.isPremiumArcticEnabled(getActivity());
-        private final String arcticApiKey = RequestHelper.getPremiumArcticApiKey(getActivity());
+        private boolean isPacific;
+        private String pacificApiKey;
+        private boolean isCustom;
+        private boolean isPremium;
         private List<Request> requests;
         private String errorMessage = "";
 
         @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
+        protected void preRun() {
+            isPacific = RequestHelper.isPremiumPacificEnabled(requireActivity());
+            pacificApiKey = RequestHelper.getPremiumPacificApiKey(requireActivity());
+            isCustom = RequestHelper.isPremiumCustomEnabled(requireActivity());
+            isPremium = true;
 
-            dialog = new MaterialDialog.Builder(getActivity())
-                    .typeface(
-                            TypefaceHelper.getMedium(getActivity()),
-                            TypefaceHelper.getRegular(getActivity()))
+            dialog = new MaterialDialog.Builder(requireActivity())
+                    .typeface(TypefaceHelper.getMedium(requireActivity()), TypefaceHelper.getRegular(requireActivity()))
                     .content(R.string.premium_request_rebuilding)
                     .cancelable(false)
                     .canceledOnTouchOutside(false)
@@ -241,30 +249,48 @@ public class SettingsFragment extends Fragment {
         }
 
         @Override
-        protected Boolean doInBackground(Void... voids) {
-            while (!isCancelled()) {
+        protected boolean run() {
+            if (!isCancelled()) {
                 try {
                     Thread.sleep(1);
-                    File directory = getActivity().getCacheDir();
-                    requests = Database.get(getActivity()).getPremiumRequest(null);
+                    File directory = requireActivity().getCacheDir();
+                    requests = Database.get(requireActivity()).getPremiumRequest(null);
                     if (requests.size() == 0) return true;
 
                     List<String> files = new ArrayList<>();
 
                     for (Request request : requests) {
-                        Drawable drawable = getReqIcon(getActivity(), request.getActivity());
+                        Drawable drawable = getPackageIcon(requireActivity(), request.getActivity());
                         String icon = IconsHelper.saveIcon(files, directory, drawable,
-                                isArctic ? request.getPackageName() : RequestHelper.fixNameForRequest(request.getName()));
+                                isPacific ? request.getPackageName() : RequestHelper.fixNameForRequest(request.getName()));
                         if (icon != null) files.add(icon);
+                        if (isCustom) {
+                            request.setIconBase64(getReqIconBase64(drawable));
+                        }
                     }
 
-                    if (isArctic) {
-                        errorMessage = RequestHelper.sendArcticRequest(requests, files, directory, arcticApiKey);
+                    if (isPacific) {
+                        errorMessage = RequestHelper.sendPacificRequest(requests, files, directory, pacificApiKey);
+                        if (errorMessage == null) {
+                            for (Request request : requests) {
+                                Database.get(requireActivity()).addRequest(null, request);
+                                Database.get(requireActivity()).addPremiumRequest(null, request);
+                            }
+                        }
+                        return errorMessage == null;
+                    } else if (isCustom) {
+                        errorMessage = RequestHelper.sendCustomRequest(requests, isPremium);
+                        if (errorMessage == null) {
+                            for (Request request : requests) {
+                                Database.get(requireActivity()).addRequest(null, request);
+                                Database.get(requireActivity()).addPremiumRequest(null, request);
+                            }
+                        }
                         return errorMessage == null;
                     } else {
-                        File appFilter = RequestHelper.buildXml(getActivity(), requests, RequestHelper.XmlType.APPFILTER);
-                        File appMap = RequestHelper.buildXml(getActivity(), requests, RequestHelper.XmlType.APPMAP);
-                        File themeResources = RequestHelper.buildXml(getActivity(), requests, RequestHelper.XmlType.THEME_RESOURCES);
+                        File appFilter = RequestHelper.buildXml(requireActivity(), requests, RequestHelper.XmlType.APPFILTER);
+                        File appMap = RequestHelper.buildXml(requireActivity(), requests, RequestHelper.XmlType.APPMAP);
+                        File themeResources = RequestHelper.buildXml(requireActivity(), requests, RequestHelper.XmlType.THEME_RESOURCES);
 
                         if (appFilter != null) {
                             files.add(appFilter.toString());
@@ -292,23 +318,23 @@ public class SettingsFragment extends Fragment {
         }
 
         @Override
-        protected void onPostExecute(Boolean aBoolean) {
-            super.onPostExecute(aBoolean);
+        protected void postRun(boolean ok) {
             if (getActivity() == null) return;
             if (getActivity().isFinishing()) return;
 
             dialog.dismiss();
             dialog = null;
 
-            if (aBoolean) {
+            if (ok) {
                 if (requests.size() == 0) {
                     Toast.makeText(getActivity(), R.string.premium_request_rebuilding_empty,
                             Toast.LENGTH_LONG).show();
                     return;
                 }
 
-                if (isArctic) {
-                    Toast.makeText(getActivity(), R.string.request_arctic_success, Toast.LENGTH_LONG).show();
+                if (isPacific || isCustom) {
+                    int toastText = isPacific ? R.string.request_pacific_success : R.string.request_custom_success;
+                    Toast.makeText(getActivity(), toastText, Toast.LENGTH_LONG).show();
                     ((RequestListener) getActivity()).onRequestBuilt(null, IntentChooserFragment.REBUILD_ICON_REQUEST);
                 } else {
                     IntentChooserFragment.showIntentChooserDialog(

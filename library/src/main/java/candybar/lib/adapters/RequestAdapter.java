@@ -2,12 +2,13 @@ package candybar.lib.adapters;
 
 import android.content.Context;
 import android.graphics.PorterDuff;
-import android.os.Build;
 import android.util.Log;
 import android.util.SparseBooleanArray;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
@@ -15,11 +16,11 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.widget.AppCompatButton;
-import androidx.appcompat.widget.AppCompatCheckBox;
+import androidx.appcompat.content.res.AppCompatResources;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.StaggeredGridLayoutManager;
 
+import com.afollestad.materialdialogs.MaterialDialog;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
@@ -28,15 +29,15 @@ import com.danimahardhika.android.helpers.core.DrawableHelper;
 import com.danimahardhika.android.helpers.core.utils.LogUtil;
 import com.google.android.material.card.MaterialCardView;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.util.ArrayList;
 import java.util.List;
 
 import candybar.lib.R;
 import candybar.lib.applications.CandyBarApplication;
+import candybar.lib.helpers.TypefaceHelper;
 import candybar.lib.items.Request;
 import candybar.lib.preferences.Preferences;
+import candybar.lib.utils.CandyBarGlideModule;
 import candybar.lib.utils.listeners.RequestListener;
 
 /*
@@ -69,7 +70,7 @@ public class RequestAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
     private final boolean mShowShadow;
     private final boolean mShowPremiumRequest;
-    private final boolean mShowRegularRequest;
+    private final boolean mShowRegularRequestLimit;
 
     private static final int TYPE_HEADER = 0;
     private static final int TYPE_CONTENT = 1;
@@ -80,17 +81,17 @@ public class RequestAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         mRequests = requests;
         mTextColorSecondary = ColorHelper.getAttributeColor(mContext,
                 android.R.attr.textColorSecondary);
-        mTextColorAccent = ColorHelper.getAttributeColor(mContext, R.attr.colorAccent);
+        mTextColorAccent = ColorHelper.getAttributeColor(mContext, com.google.android.material.R.attr.colorSecondary);
         mSelectedItems = new SparseBooleanArray();
 
         mShowShadow = (spanCount == 1);
         mShowPremiumRequest = Preferences.get(mContext).isPremiumRequestEnabled();
-        mShowRegularRequest = Preferences.get(mContext).isRegularRequestLimit();
+        mShowRegularRequestLimit = Preferences.get(mContext).isRegularRequestLimit();
     }
 
-    @NotNull
+    @NonNull
     @Override
-    public RecyclerView.ViewHolder onCreateViewHolder(@NotNull ViewGroup parent, int viewType) {
+    public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         if (viewType == TYPE_HEADER) {
             View view = LayoutInflater.from(mContext).inflate(
                     R.layout.fragment_request_item_header, parent, false);
@@ -116,7 +117,7 @@ public class RequestAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     }
 
     @Override
-    public void onViewRecycled(@NotNull RecyclerView.ViewHolder holder) {
+    public void onViewRecycled(@NonNull RecyclerView.ViewHolder holder) {
         super.onViewRecycled(holder);
         if (holder.getItemViewType() == TYPE_CONTENT) {
             ContentViewHolder contentViewHolder = (ContentViewHolder) holder;
@@ -132,7 +133,7 @@ public class RequestAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
         if (holder.getItemViewType() == TYPE_HEADER) {
             HeaderViewHolder HeaderViewHolder = (HeaderViewHolder) holder;
-            if (Preferences.get(mContext).isPremiumRequestEnabled()) {
+            if (mShowPremiumRequest) {
                 if (Preferences.get(mContext).isPremiumRequest()) {
                     HeaderViewHolder.button.setVisibility(View.GONE);
                     HeaderViewHolder.premContent.setVisibility(View.GONE);
@@ -141,15 +142,12 @@ public class RequestAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                     int total = Preferences.get(mContext).getPremiumRequestTotal();
                     int available = Preferences.get(mContext).getPremiumRequestCount();
 
-                    HeaderViewHolder.premTotal.setText(String.format(
-                            mContext.getResources().getString(R.string.premium_request_count),
-                            total));
-                    HeaderViewHolder.premAvailable.setText(String.format(
-                            mContext.getResources().getString(R.string.premium_request_available),
-                            available));
-                    HeaderViewHolder.premUsed.setText(String.format(
-                            mContext.getResources().getString(R.string.premium_request_used),
-                            (total - available)));
+                    HeaderViewHolder.premTotal.setText(mContext.getResources().getString(
+                            R.string.premium_request_count, total));
+                    HeaderViewHolder.premAvailable.setText(mContext.getResources().getString(
+                            R.string.premium_request_available, available));
+                    HeaderViewHolder.premUsed.setText(mContext.getResources().getString(
+                            R.string.premium_request_used, (total - available)));
 
                     HeaderViewHolder.premProgress.setMax(total);
                     HeaderViewHolder.premProgress.setProgress(available);
@@ -162,20 +160,17 @@ public class RequestAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 HeaderViewHolder.premWholeContainer.setVisibility(View.GONE);
             }
 
-            if (Preferences.get(mContext).isRegularRequestLimit()) {
+            if (mShowRegularRequestLimit) {
                 int total = mContext.getResources().getInteger(R.integer.icon_request_limit);
                 int used = Preferences.get(mContext).getRegularRequestUsed();
                 int available = total - used;
 
-                HeaderViewHolder.regTotal.setText(String.format(
-                        mContext.getResources().getString(R.string.regular_request_count),
-                        total));
-                HeaderViewHolder.regAvailable.setText(String.format(
-                        mContext.getResources().getString(R.string.regular_request_available),
-                        available));
-                HeaderViewHolder.regUsed.setText(String.format(
-                        mContext.getResources().getString(R.string.regular_request_used),
-                        used));
+                HeaderViewHolder.regTotal.setText(mContext.getResources().getString(
+                        R.string.regular_request_count, total));
+                HeaderViewHolder.regAvailable.setText(mContext.getResources().getString(
+                        R.string.regular_request_available, available));
+                HeaderViewHolder.regUsed.setText(mContext.getResources().getString(
+                        R.string.regular_request_used, used));
 
                 HeaderViewHolder.regProgress.setMax(total);
                 HeaderViewHolder.regProgress.setProgress(available);
@@ -187,25 +182,65 @@ public class RequestAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 HeaderViewHolder.regWholeContainer.setVisibility(View.GONE);
             }
         } else if (holder.getItemViewType() == TYPE_CONTENT) {
-            int finalPosition = mShowPremiumRequest ? position - 1 : position;
+            int finalPosition = position;
+            if (mShowPremiumRequest || mShowRegularRequestLimit) finalPosition -= 1;
             ContentViewHolder contentViewHolder = (ContentViewHolder) holder;
 
-            Glide.with(mContext)
-                    .load("package://" + mRequests.get(finalPosition).getActivity())
-                    .override(272)
-                    .transition(DrawableTransitionOptions.withCrossFade(300))
-                    .diskCacheStrategy(DiskCacheStrategy.NONE)
-                    .into(contentViewHolder.icon);
+            if (CandyBarGlideModule.isValidContextForGlide(mContext)) {
+                Glide.with(mContext)
+                        // Check candybar.lib.utils - CommonDataFetcher and CommonModelLoader
+                        .load("package://" + mRequests.get(finalPosition).getActivity())
+                        .override(272)
+                        .transition(DrawableTransitionOptions.withCrossFade(300))
+                        .diskCacheStrategy(DiskCacheStrategy.NONE)
+                        .into(contentViewHolder.icon);
+            }
 
             contentViewHolder.title.setText(mRequests.get(finalPosition).getName());
+            contentViewHolder.infoIcon.setVisibility(View.GONE);
 
             if (mRequests.get(finalPosition).isRequested()) {
                 contentViewHolder.content.setTextColor(mTextColorAccent);
                 contentViewHolder.content.setText(mContext.getResources().getString(
                         R.string.request_already_requested));
-            } else {
+            } else if (mRequests.get(finalPosition).isAvailableForRequest()) {
                 contentViewHolder.content.setText(mContext.getResources().getString(
                         R.string.request_not_requested));
+            } else {
+                contentViewHolder.content.setText(mContext.getResources().getString(
+                        R.string.request_not_available));
+            }
+
+            if (mRequests.get(finalPosition).isRequested() && !mContext.getResources().getBoolean(R.bool.enable_icon_request_multiple)) {
+                // This icon was requested before and we do not allow multi-requests, so we
+                // keep it visually enabled in the list but disable the checkbox
+                contentViewHolder.content.setAlpha(1f);
+                contentViewHolder.title.setAlpha(1f);
+                contentViewHolder.icon.setAlpha(1f);
+                contentViewHolder.checkbox.setEnabled(false);
+            } else if (!mRequests.get(finalPosition).isAvailableForRequest()) {
+                contentViewHolder.content.setAlpha(0.5f);
+                contentViewHolder.title.setAlpha(0.5f);
+                contentViewHolder.icon.setAlpha(0.5f);
+                contentViewHolder.checkbox.setEnabled(false);
+            } else {
+                contentViewHolder.content.setAlpha(1f);
+                contentViewHolder.title.setAlpha(1f);
+                contentViewHolder.icon.setAlpha(1f);
+                contentViewHolder.checkbox.setEnabled(true);
+            }
+
+            if (!mRequests.get(finalPosition).getInfoText().isEmpty()) {
+                contentViewHolder.infoIcon.setVisibility(View.VISIBLE);
+                contentViewHolder.infoIcon.setImageDrawable(AppCompatResources.getDrawable(mContext, R.drawable.ic_drawer_about));
+                contentViewHolder.infoIcon.setColorFilter(mTextColorSecondary);
+                int pos = finalPosition;
+                contentViewHolder.infoIcon.setOnClickListener(v -> new MaterialDialog.Builder(mContext)
+                        .typeface(TypefaceHelper.getMedium(mContext), TypefaceHelper.getRegular(mContext))
+                        .title(mRequests.get(pos).getName())
+                        .content(mRequests.get(pos).getInfoText())
+                        .positiveText(android.R.string.yes)
+                        .show());
             }
 
             contentViewHolder.checkbox.setChecked(mSelectedItems.get(finalPosition, false));
@@ -220,41 +255,37 @@ public class RequestAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     public int getItemCount() {
         int count = mRequests == null ? 0 : mRequests.size();
         if (mShowShadow) count += 1;
-        if (mShowPremiumRequest) count += 1;
+        if (mShowPremiumRequest || mShowRegularRequestLimit) count += 1;
         return count;
     }
 
     @Override
     public int getItemViewType(int position) {
-        if (position == 0 && (mShowPremiumRequest || mShowRegularRequest)) return TYPE_HEADER;
+        if (position == 0 && (mShowPremiumRequest || mShowRegularRequestLimit)) return TYPE_HEADER;
         if (position == (getItemCount() - 1) && mShowShadow) return TYPE_FOOTER;
         return TYPE_CONTENT;
     }
 
     private class HeaderViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
 
-        private final TextView premTitle;
         private final TextView premContent;
         private final TextView premTotal;
         private final TextView premAvailable;
         private final TextView premUsed;
-        private final AppCompatButton button;
+        private final Button button;
         private final LinearLayout premContainer;
         private final LinearLayout premWholeContainer;
         private final ProgressBar premProgress;
 
-        private final TextView regTitle;
-        private final TextView regContent;
         private final TextView regTotal;
         private final TextView regAvailable;
         private final TextView regUsed;
-        private final LinearLayout regContainer;
         private final LinearLayout regWholeContainer;
         private final ProgressBar regProgress;
 
         HeaderViewHolder(View itemView) {
             super(itemView);
-            premTitle = itemView.findViewById(R.id.premium_request_title);
+            TextView premTitle = itemView.findViewById(R.id.premium_request_title);
             premContent = itemView.findViewById(R.id.premium_request_content);
             button = itemView.findViewById(R.id.buy);
 
@@ -266,10 +297,10 @@ public class RequestAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             premProgress = itemView.findViewById(R.id.premium_request_progress);
 
 
-            regTitle = itemView.findViewById(R.id.regular_request_title);
-            regContent = itemView.findViewById(R.id.regular_request_content);
+            TextView regTitle = itemView.findViewById(R.id.regular_request_title);
+            TextView regContent = itemView.findViewById(R.id.regular_request_content);
             regWholeContainer = itemView.findViewById(R.id.regular_request_container);
-            regContainer = itemView.findViewById(R.id.regular_request);
+            LinearLayout regContainer = itemView.findViewById(R.id.regular_request);
             regTotal = itemView.findViewById(R.id.regular_request_total);
             regAvailable = itemView.findViewById(R.id.regular_request_available);
             regUsed = itemView.findViewById(R.id.regular_request_used);
@@ -284,9 +315,7 @@ public class RequestAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                     int margin = mContext.getResources().getDimensionPixelSize(R.dimen.card_margin);
                     StaggeredGridLayoutManager.LayoutParams params = (StaggeredGridLayoutManager.LayoutParams) card.getLayoutParams();
                     params.setMargins(0, 0, margin, margin);
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
-                        params.setMarginEnd(margin);
-                    }
+                    params.setMarginEnd(margin);
                 }
             }
 
@@ -324,8 +353,8 @@ public class RequestAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                             R.drawable.ic_toolbar_icon_request, color),
                     null, null, null);
 
-            int primary = ColorHelper.getAttributeColor(mContext, R.attr.colorPrimary);
-            int accent = ColorHelper.getAttributeColor(mContext, R.attr.colorAccent);
+            int primary = ColorHelper.getAttributeColor(mContext, androidx.appcompat.R.attr.colorPrimary);
+            int accent = ColorHelper.getAttributeColor(mContext, com.google.android.material.R.attr.colorSecondary);
             button.setTextColor(ColorHelper.getTitleTextColor(primary));
 
             premProgress.getProgressDrawable().setColorFilter(accent, PorterDuff.Mode.SRC_IN);
@@ -344,13 +373,18 @@ public class RequestAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         }
     }
 
+    public interface ToggleResultListener {
+        void onPositiveResult();
+        void onNegativeResult();
+    }
+
     private class ContentViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener, View.OnLongClickListener {
 
         private final TextView title;
         private final TextView content;
         private final ImageView icon;
-        private final AppCompatCheckBox checkbox;
-        private final LinearLayout container;
+        private final CheckBox checkbox;
+        private final ImageView infoIcon;
         private final View divider;
 
         ContentViewHolder(View itemView) {
@@ -359,7 +393,8 @@ public class RequestAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             content = itemView.findViewById(R.id.requested);
             icon = itemView.findViewById(R.id.icon);
             checkbox = itemView.findViewById(R.id.checkbox);
-            container = itemView.findViewById(R.id.container);
+            infoIcon = itemView.findViewById(R.id.requestedInfoIcon);
+            LinearLayout container = itemView.findViewById(R.id.container);
             divider = itemView.findViewById(R.id.divider);
 
             MaterialCardView card = itemView.findViewById(R.id.card);
@@ -371,9 +406,7 @@ public class RequestAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                     int margin = mContext.getResources().getDimensionPixelSize(R.dimen.card_margin);
                     StaggeredGridLayoutManager.LayoutParams params = (StaggeredGridLayoutManager.LayoutParams) card.getLayoutParams();
                     params.setMargins(0, 0, margin, margin);
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
-                        params.setMarginEnd(margin);
-                    }
+                    params.setMarginEnd(margin);
                 }
             }
 
@@ -401,11 +434,19 @@ public class RequestAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         public void onClick(View view) {
             int id = view.getId();
             if (id == R.id.container) {
-                int position = mShowPremiumRequest ?
-                        getAdapterPosition() - 1 : getAdapterPosition();
-                if (toggleSelection(position)) {
-                    checkbox.toggle();
-                }
+                int position = mShowPremiumRequest || mShowRegularRequestLimit ?
+                        getBindingAdapterPosition() - 1 : getBindingAdapterPosition();
+                toggleSelection(position, new ToggleResultListener() {
+                    @Override public void onPositiveResult() {
+                        checkbox.toggle();
+                        try {
+                            RequestListener listener = (RequestListener) mContext;
+                            listener.onRequestSelected(getSelectedItemsSize());
+                        } catch (Exception ignored) {
+                        }
+                    }
+                    @Override public void onNegativeResult() { /* Do nothing */ }
+                });
             }
         }
 
@@ -413,12 +454,20 @@ public class RequestAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         public boolean onLongClick(View view) {
             int id = view.getId();
             if (id == R.id.container) {
-                int position = mShowPremiumRequest ?
-                        getAdapterPosition() - 1 : getAdapterPosition();
-                if (toggleSelection(position)) {
-                    checkbox.toggle();
-                    return true;
-                }
+                int position = mShowPremiumRequest || mShowRegularRequestLimit ?
+                        getBindingAdapterPosition() - 1 : getBindingAdapterPosition();
+                toggleSelection(position, new ToggleResultListener() {
+                    @Override public void onPositiveResult() {
+                        checkbox.toggle();
+                        try {
+                            RequestListener listener = (RequestListener) mContext;
+                            listener.onRequestSelected(getSelectedItemsSize());
+                        } catch (Exception ignored) {
+                        }
+                    }
+                    @Override public void onNegativeResult() { /* Do nothing */ }
+                });
+                return true;
             }
             return false;
         }
@@ -447,19 +496,62 @@ public class RequestAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         return null;
     }
 
-    private boolean toggleSelection(int position) {
+    private void toggleSelection(int position, ToggleResultListener toggleListener) {
         if (position >= 0 && position < mRequests.size()) {
-            if (mSelectedItems.get(position, false))
+            boolean isSelected = mSelectedItems.get(position, false);
+            boolean isRequested = mRequests.get(position).isRequested();
+            boolean isDuplicateRequestAllowed = mContext.getResources().getBoolean(R.bool.enable_icon_request_multiple);
+
+            if (isSelected) {
                 mSelectedItems.delete(position);
-            else mSelectedItems.put(position, true);
-            try {
-                RequestListener listener = (RequestListener) mContext;
-                listener.onRequestSelected(getSelectedItemsSize());
-                return true;
-            } catch (Exception ignored) {
+                toggleListener.onPositiveResult();
+            } else if (isRequested) {
+                if (isDuplicateRequestAllowed) {
+                    // Icon was already requested but re-request is allowed
+                    // Ask user if they really want to re-request the icon
+                    new MaterialDialog.Builder(mContext)
+                            .typeface(TypefaceHelper.getMedium(mContext), TypefaceHelper.getRegular(mContext))
+                            .title(R.string.request_already_requested)
+                            .content(R.string.request_requested_possible)
+                            .cancelable(false)
+                            .canceledOnTouchOutside(false)
+                            .negativeText(R.string.request_requested_button_cancel)
+                            .onNegative((dialog, which) -> toggleListener.onNegativeResult())
+                            .positiveText(R.string.request_requested_button_confirm)
+                            .onPositive((dialog, which) -> {
+                                mSelectedItems.put(position, true);
+                                toggleListener.onPositiveResult();
+                            })
+                            .show();
+                } else {
+                    // Re-requesting icons is not allowed
+                    toggleListener.onNegativeResult();
+                    new MaterialDialog.Builder(mContext)
+                            .typeface(TypefaceHelper.getMedium(mContext), TypefaceHelper.getRegular(mContext))
+                            .title(R.string.request_not_available)
+                            .content(R.string.request_requested)
+                            .negativeText(R.string.request_requested_button_cancel)
+                            .show();
+                }
+            } else if (!mRequests.get(position).isAvailableForRequest()) {
+                // Icon is not available for request
+                toggleListener.onNegativeResult();
+                if (!mRequests.get(position).getInfoText().isEmpty()) {
+                    new MaterialDialog.Builder(mContext)
+                            .typeface(TypefaceHelper.getMedium(mContext), TypefaceHelper.getRegular(mContext))
+                            .title(mContext.getResources().getString(R.string.request_not_available))
+                            .content(mRequests.get(position).getInfoText())
+                            .positiveText(android.R.string.yes)
+                            .show();
+                }
+            } else {
+                // If nothing prevents us from reaching this point, we can select the icon
+                mSelectedItems.put(position, true);
+                toggleListener.onPositiveResult();
             }
+        } else {
+            toggleListener.onNegativeResult();
         }
-        return false;
     }
 
     public boolean selectAll() {
@@ -471,11 +563,12 @@ public class RequestAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
         mSelectedItems.clear();
         for (int i = 0; i < mRequests.size(); i++) {
-            if (!mRequests.get(i).isRequested())
+            if (!mRequests.get(i).isRequested() && mRequests.get(i).isAvailableForRequest())
                 mSelectedItems.put(i, true);
         }
         mSelectedAll = mSelectedItems.size() > 0;
         notifyDataSetChanged();
+
         try {
             RequestListener listener = (RequestListener) mContext;
             listener.onRequestSelected(getSelectedItemsSize());
@@ -518,10 +611,6 @@ public class RequestAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         } catch (Exception ignored) {
         }
         notifyDataSetChanged();
-    }
-
-    public Request getRequest(int position) {
-        return mRequests.get(position);
     }
 
     public List<Request> getSelectedApps() {

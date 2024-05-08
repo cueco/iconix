@@ -24,6 +24,7 @@
     <string name="menu_search">搜尋</string>
     <string name="menu_save">儲存到裝置</string>
     <string name="menu_select_all">全選</string>
+    <string name="menu_delete">刪除</string>
     <string name="menu_wallpaper_crop">裁剪桌布</string>
     <string name="menu_apply_homescreen">主螢幕</string>
     <string name="menu_apply_lockscreen">鎖定畫面</string>
@@ -34,10 +35,14 @@
     <string name="ok">確認</string>
     <string name="install">安裝</string>
     <string name="donate">捐贈</string>
+    <string name="update">更新</string>
     <string name="search_noresult">未找到 \"%s\"</string>
     <string name="search_faqs">問題或回答</string>
     <string name="search_icon">icon 名稱</string>
     <!-- Update -->
+    <string name="checking_for_update">正在檢查更新...</string>
+    <string name="update_available">可用的更新 ！</string>
+    <string name="no_update_available">你正在使用最新版本</string>
     <!-- Changelog -->
     <string name="changelog_version">版本</string>
     <!-- InAppBilling -->
@@ -50,6 +55,7 @@
 您無法使用本 App 。</string>
     <string name="license_check_retry">無法檢查許可證，請稍後重試。</string>
     <!-- Play Store Installation Check -->
+    <string name="playstore_check_success">感谢您从 Google Play 商店安装该应用程序</string>
     <!-- Share -->
     <string name="share_app_title">喲！來看看 %s</string>
     <string name="share_app_body">來看看 %1$s，這個 icon pack 超酷的！ %2$s</string>
@@ -57,7 +63,6 @@
     <string name="tap_intro_home_navigation">導航抽屜</string>
     <string name="tap_intro_home_navigation_desc">點擊這裡或者從螢幕左邊緣滑動來打開導航抽屜</string>
     <string name="tap_intro_home_apply">啟用 icon pack </string>
-    <string name="tap_intro_home_apply_desc">點此啟用 %s</string>
     <string name="tap_intro_icons_search">搜尋</string>
     <string name="tap_intro_icons_search_desc">點此搜尋 icon </string>
     <string name="tap_intro_request_select">選擇未支援的 App </string>
@@ -94,7 +99,7 @@
     <!-- Apply -->
     <string name="apply_installed">已安裝的啟動器</string>
     <string name="apply_supported">受支援的啟動器</string>
-    <string name="apply_manual_evie">在主螢幕上長按 - 設定 -  icon pack  - 選擇 %s。</string>
+    <string name="apply_manual">%1$s 不支援直接從 App 中啟用 icon ，你可以從啟動器設定中手動啟用 %2$s。</string>
     <string name="apply_launch_failed">無法啟動 %s 設定</string>
     <string name="apply_launcher_not_installed">%s 尚未安裝。你想跳轉到 Google Play 商店去下載安裝它嗎？</string>
     <string name="apply_cmtheme_not_available">CM 主題管理器在此裝置上不可用。</string>
@@ -105,6 +110,7 @@
     <string name="apply_lg_home_nougat">Android Nougat 版本的 LG Home 不再支援 icon pack 了。你需要一個第三方啟動器來使用 icon pack 。</string>
     <!-- Icons -->
     <string name="icons_load_failed">無法載入 icon </string>
+    <string name="icon_shape">圖示形狀</string>
     <!-- Request -->
     <string name="request_title">申請 icon </string>
     <string name="request_not_selected">選擇用來申請適配的 App </string>
@@ -113,8 +119,6 @@
     <string name="request_building">產生申請文件中……</string>
     <string name="request_build_failed">無法產生申請文件</string>
     <string name="request_appfilter_failed">無法讀取 appfilter.xml</string>
-    <string name="request_requested">請重新檢查您的申請。
-因為您試圖申請的 icon 已被您申請了。</string>
     <string name="request_email_client">選擇您想用來提交 icon 申請的郵件 App</string>
     <string name="request_limit">您在常規 icon 申請權狀態下僅能提交 %d 個適配申請。</string>
     <string name="request_used">您已申請適配 %d 個 icon 。</string>
@@ -151,6 +155,7 @@
     <string name="connection_failed">無法從服務器獲取資料</string>
     <string name="wallpaper_apply">使用桌布</string>
     <string name="wallpaper_save_to_device">儲存桌布</string>
+    <!-- Presets -->
     <!-- Preferences -->
     <string name="pref_data_header">資料 &amp; 快取</string>
     <string name="pref_data_cache">清除快取</string>
@@ -181,6 +186,9 @@
     <string name="pref_others_reset_tutorial">重置教程</string>
     <string name="pref_others_reset_tutorial_reset">教程已重置</string>
     <!-- Themes -->
+    <string name="theme_name_auto">默认</string>
+    <string name="theme_name_light">淺色</string>
+    <string name="theme_name_dark">深色</string>
     <!-- Permission -->
     <string name="permission_storage_denied">需要存儲權限以儲存桌布</string>
     <!-- Intent -->
@@ -194,6 +202,7 @@
     <string name="intent_email_not_supported_message">選擇了一個不支援的郵件 App，請更換另一個郵件 App</string>
     <!-- About -->
     <string name="about_contributors_title">貢獻者</string>
+    <string name="about_privacy_policy_title">隱私政策</string>
     <!-- Report Bugs -->
     <string name="report_bugs_desc">請給予我一些關於你想要報告的問題種類的描述</string>
     <string name="report_bugs_desc_hint">描述</string>
@@ -216,4 +225,5 @@
     <!-- DrawerToggle -->
     <string name="txt_open">打開</string>
     <string name="txt_close">關閉</string>
+    <!-- Content descriptions for screen readers -->
 </resources>

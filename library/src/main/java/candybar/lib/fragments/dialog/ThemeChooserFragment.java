@@ -41,7 +41,6 @@ import candybar.lib.preferences.Preferences;
 
 public class ThemeChooserFragment extends DialogFragment {
 
-    private ListView mListView;
     private Theme mChosenTheme;
     private Theme mCurrentTheme;
 
@@ -68,33 +67,27 @@ public class ThemeChooserFragment extends DialogFragment {
     @NonNull
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
-        MaterialDialog dialog = new MaterialDialog.Builder(getActivity())
+        MaterialDialog dialog = new MaterialDialog.Builder(requireActivity())
                 .customView(R.layout.fragment_languages, false)
-                .typeface(TypefaceHelper.getMedium(getActivity()), TypefaceHelper.getRegular(getActivity()))
+                .typeface(TypefaceHelper.getMedium(requireActivity()), TypefaceHelper.getRegular(requireActivity()))
                 .title(R.string.pref_theme_header)
                 .negativeText(R.string.close)
                 .build();
-
         dialog.show();
 
-        mListView = (ListView) dialog.findViewById(R.id.listview);
+        ListView listView = (ListView) dialog.findViewById(R.id.listview);
+        mChosenTheme = mCurrentTheme = Preferences.get(requireActivity()).getTheme();
+
+        listView.setAdapter(new ThemeAdapter(requireActivity(), Arrays.asList(Theme.values()), mCurrentTheme.ordinal()));
+
         return dialog;
     }
 
     @Override
-    public void onActivityCreated(Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
-
-        mChosenTheme = mCurrentTheme = Preferences.get(getActivity()).getTheme();
-
-        mListView.setAdapter(new ThemeAdapter(getActivity(), Arrays.asList(Theme.values()), mCurrentTheme.ordinal()));
-    }
-
-    @Override
-    public void onDismiss(DialogInterface dialog) {
+    public void onDismiss(@NonNull DialogInterface dialog) {
         if (mChosenTheme != mCurrentTheme) {
-            Preferences.get(getActivity()).setTheme(mChosenTheme);
-            getActivity().recreate();
+            Preferences.get(requireActivity()).setTheme(mChosenTheme);
+            requireActivity().recreate();
         }
         super.onDismiss(dialog);
     }

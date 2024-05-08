@@ -3,19 +3,17 @@ package candybar.lib.utils;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.PorterDuff;
-import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
-import android.os.Build;
 import android.util.DisplayMetrics;
 import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
+import android.widget.CheckBox;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.widget.AppCompatCheckBox;
 import androidx.appcompat.widget.ListPopupWindow;
 
 import com.danimahardhika.android.helpers.core.ColorHelper;
@@ -49,8 +47,8 @@ import candybar.lib.items.PopupItem;
 
 public class Popup {
 
-    private ListPopupWindow mPopupWindow;
-    private PopupAdapter mAdapter;
+    private final ListPopupWindow mPopupWindow;
+    private final PopupAdapter mAdapter;
 
     private Popup(Builder builder) {
         mPopupWindow = new ListPopupWindow(builder.mContext);
@@ -58,15 +56,10 @@ public class Popup {
 
         int width = getMeasuredWidth(builder.mContext);
         mPopupWindow.setWidth(width);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            Drawable drawable = mPopupWindow.getBackground();
-            if (drawable != null) {
-                drawable.setColorFilter(ColorHelper.getAttributeColor(
-                        builder.mContext, R.attr.card_background), PorterDuff.Mode.SRC_IN);
-            }
-        } else {
-            mPopupWindow.setBackgroundDrawable(new ColorDrawable(
-                    ColorHelper.getAttributeColor(builder.mContext, R.attr.card_background)));
+        Drawable drawable = mPopupWindow.getBackground();
+        if (drawable != null) {
+            drawable.setColorFilter(ColorHelper.getAttributeColor(
+                    builder.mContext, R.attr.cb_cardBackground), PorterDuff.Mode.SRC_IN);
         }
 
         mPopupWindow.setAnchorView(builder.mTo);
@@ -184,9 +177,9 @@ public class Popup {
         }
     }
 
-    class PopupAdapter extends BaseAdapter {
+    static class PopupAdapter extends BaseAdapter {
 
-        private List<PopupItem> mItems;
+        private final List<PopupItem> mItems;
         private final Context mContext;
 
         PopupAdapter(@NonNull Context context, @NonNull List<PopupItem> items) {
@@ -229,7 +222,7 @@ public class Popup {
 
             int color = ColorHelper.getAttributeColor(mContext, android.R.attr.textColorPrimary);
             if (item.isSelected()) {
-                color = ColorHelper.getAttributeColor(mContext, R.attr.colorAccent);
+                color = ColorHelper.getAttributeColor(mContext, com.google.android.material.R.attr.colorSecondary);
             }
 
             if (item.getIcon() != 0) {
@@ -242,10 +235,10 @@ public class Popup {
             return view;
         }
 
-        class ViewHolder {
+        static class ViewHolder {
 
-            AppCompatCheckBox checkBox;
-            TextView title;
+            final CheckBox checkBox;
+            final TextView title;
 
             ViewHolder(@NonNull View view) {
                 checkBox = view.findViewById(R.id.checkbox);

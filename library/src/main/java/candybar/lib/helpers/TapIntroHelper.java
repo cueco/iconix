@@ -1,5 +1,8 @@
 package candybar.lib.helpers;
 
+import static com.danimahardhika.android.helpers.core.UnitHelper.toDp;
+
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
@@ -27,8 +30,6 @@ import candybar.lib.R;
 import candybar.lib.adapters.HomeAdapter;
 import candybar.lib.preferences.Preferences;
 
-import static com.danimahardhika.android.helpers.core.UnitHelper.toDp;
-
 /*
  * CandyBar - Material Dashboard
  *
@@ -49,6 +50,7 @@ import static com.danimahardhika.android.helpers.core.UnitHelper.toDp;
 
 public class TapIntroHelper {
 
+    @SuppressLint("StringFormatInvalid")
     public static void showHomeIntros(@NonNull Context context, @Nullable RecyclerView recyclerView,
                                       @Nullable StaggeredGridLayoutManager manager, int position) {
         if (Preferences.get(context).isTimeToShowHomeIntro()) {
@@ -58,8 +60,19 @@ public class TapIntroHelper {
 
             new Handler().postDelayed(() -> {
                 try {
-                    int primary = ColorHelper.getAttributeColor(context, R.attr.toolbar_icon);
-                    int secondary = ColorHelper.setColorAlpha(primary, 0.7f);
+                    int titleColor = ColorHelper.getAttributeColor(context, R.attr.cb_tapIntroTitle);
+                    int descriptionColor = ColorHelper.getAttributeColor(context, R.attr.cb_tapIntroDescription);
+                    int circleColorInner = ColorHelper.getAttributeColor(context, R.attr.cb_tapIntroCircleInner);
+                    int circleColorOuter = ColorHelper.getAttributeColor(context, R.attr.cb_tapIntroCircleOuter);
+
+                    if (context.getResources().getBoolean(R.bool.use_legacy_intro_colors)) {
+                        int primary = ColorHelper.getAttributeColor(context, R.attr.cb_toolbarIcon);
+                        int secondary = ColorHelper.setColorAlpha(primary, 0.7f);
+                        titleColor = primary;
+                        descriptionColor = ColorHelper.setColorAlpha(primary, 0.7f);
+                        circleColorInner = secondary;
+                        circleColorOuter = 0;
+                    }
 
                     TapTargetSequence tapTargetSequence = new TapTargetSequence(activity);
                     tapTargetSequence.continueOnCancel(true);
@@ -72,10 +85,14 @@ public class TapIntroHelper {
                         TapTarget tapTarget = TapTarget.forToolbarNavigationIcon(toolbar,
                                 context.getResources().getString(R.string.tap_intro_home_navigation),
                                 context.getResources().getString(R.string.tap_intro_home_navigation_desc))
-                                .titleTextColorInt(primary)
-                                .descriptionTextColorInt(secondary)
-                                .targetCircleColorInt(primary)
+                                .titleTextColorInt(titleColor)
+                                .descriptionTextColorInt(descriptionColor)
+                                .targetCircleColorInt(circleColorInner)
                                 .drawShadow(Preferences.get(context).isTapIntroShadowEnabled());
+
+                        if (circleColorOuter != 0) {
+                            tapTarget.outerCircleColorInt(circleColorOuter);
+                        }
 
                         if (title != null) {
                             tapTarget.textTypeface(title);
@@ -97,31 +114,34 @@ public class TapIntroHelper {
                                     RecyclerView.ViewHolder holder = recyclerView.findViewHolderForAdapterPosition(position);
                                     if (holder != null) {
                                         View view = holder.itemView;
-                                        if (view != null) {
-                                            float targetRadius = toDp(context, view.getMeasuredWidth()) - 20f;
+                                        float circleScale = 100.0f / context.getResources().getInteger(R.integer.tap_intro_circle_scale_percent);
+                                        float targetRadius = (toDp(context, view.getMeasuredWidth()) - 20f) * circleScale;
 
-                                            String desc = String.format(context.getResources().getString(R.string.tap_intro_home_apply_desc),
-                                                    context.getResources().getString(R.string.app_name));
-                                            TapTarget tapTarget = TapTarget.forView(view,
-                                                    context.getResources().getString(R.string.tap_intro_home_apply),
-                                                    desc)
-                                                    .titleTextColorInt(primary)
-                                                    .descriptionTextColorInt(secondary)
-                                                    .targetCircleColorInt(primary)
-                                                    .targetRadius((int) targetRadius)
-                                                    .tintTarget(false)
-                                                    .drawShadow(Preferences.get(context).isTapIntroShadowEnabled());
+                                        String desc = context.getResources().getString(R.string.tap_intro_home_apply_desc,
+                                                context.getResources().getString(R.string.app_name));
+                                        TapTarget tapTarget = TapTarget.forView(view,
+                                                context.getResources().getString(R.string.tap_intro_home_apply),
+                                                desc)
+                                                .titleTextColorInt(titleColor)
+                                                .descriptionTextColorInt(descriptionColor)
+                                                .targetCircleColorInt(circleColorInner)
+                                                .targetRadius((int) targetRadius)
+                                                .tintTarget(false)
+                                                .drawShadow(Preferences.get(context).isTapIntroShadowEnabled());
 
-                                            if (title != null) {
-                                                tapTarget.textTypeface(title);
-                                            }
-
-                                            //if (description != null) {
-                                            //tapTarget.descriptionTypeface(description);
-                                            //}
-
-                                            tapTargetSequence.target(tapTarget);
+                                        if (circleColorOuter != 0) {
+                                            tapTarget.outerCircleColorInt(circleColorOuter);
                                         }
+
+                                        if (title != null) {
+                                            tapTarget.textTypeface(title);
+                                        }
+
+                                        //if (description != null) {
+                                        //tapTarget.descriptionTypeface(description);
+                                        //}
+
+                                        tapTargetSequence.target(tapTarget);
                                     }
                                 }
                             }
@@ -164,19 +184,33 @@ public class TapIntroHelper {
 
             new Handler().postDelayed(() -> {
                 try {
-                    int primary = ColorHelper.getAttributeColor(context, R.attr.toolbar_icon);
-                    int secondary = ColorHelper.setColorAlpha(primary, 0.7f);
+                    int titleColor = ColorHelper.getAttributeColor(context, R.attr.cb_tapIntroTitle);
+                    int descriptionColor = ColorHelper.getAttributeColor(context, R.attr.cb_tapIntroDescription);
+                    int circleColorInner = ColorHelper.getAttributeColor(context, R.attr.cb_tapIntroCircleInner);
+                    int circleColorOuter = ColorHelper.getAttributeColor(context, R.attr.cb_tapIntroCircleOuter);
+
+                    if (context.getResources().getBoolean(R.bool.use_legacy_intro_colors)) {
+                        int primary = ColorHelper.getAttributeColor(context, R.attr.cb_toolbarIcon);
+                        int secondary = ColorHelper.setColorAlpha(primary, 0.7f);
+                        titleColor = primary;
+                        descriptionColor = ColorHelper.setColorAlpha(primary, 0.7f);
+                        circleColorInner = secondary;
+                        circleColorOuter = 0;
+                    }
 
                     Typeface title = TypefaceHelper.getMedium(context);
-                    Typeface description = TypefaceHelper.getRegular(context);
 
                     TapTarget tapTarget = TapTarget.forToolbarMenuItem(toolbar, R.id.menu_search,
                             context.getResources().getString(R.string.tap_intro_icons_search),
                             context.getResources().getString(R.string.tap_intro_icons_search_desc))
-                            .titleTextColorInt(primary)
-                            .descriptionTextColorInt(secondary)
-                            .targetCircleColorInt(primary)
+                            .titleTextColorInt(titleColor)
+                            .descriptionTextColorInt(descriptionColor)
+                            .targetCircleColorInt(circleColorInner)
                             .drawShadow(Preferences.get(context).isTapIntroShadowEnabled());
+
+                    if (circleColorOuter != 0) {
+                        tapTarget.outerCircleColorInt(circleColorOuter);
+                    }
 
                     if (title != null) {
                         tapTarget.textTypeface(title);
@@ -216,14 +250,24 @@ public class TapIntroHelper {
 
             new Handler().postDelayed(() -> {
                 try {
-                    int primary = ColorHelper.getAttributeColor(context, R.attr.toolbar_icon);
-                    int secondary = ColorHelper.setColorAlpha(primary, 0.7f);
+                    int titleColor = ColorHelper.getAttributeColor(context, R.attr.cb_tapIntroTitle);
+                    int descriptionColor = ColorHelper.getAttributeColor(context, R.attr.cb_tapIntroDescription);
+                    int circleColorInner = ColorHelper.getAttributeColor(context, R.attr.cb_tapIntroCircleInner);
+                    int circleColorOuter = ColorHelper.getAttributeColor(context, R.attr.cb_tapIntroCircleOuter);
+
+                    if (context.getResources().getBoolean(R.bool.use_legacy_intro_colors)) {
+                        int primary = ColorHelper.getAttributeColor(context, R.attr.cb_toolbarIcon);
+                        int secondary = ColorHelper.setColorAlpha(primary, 0.7f);
+                        titleColor = primary;
+                        descriptionColor = ColorHelper.setColorAlpha(primary, 0.7f);
+                        circleColorInner = secondary;
+                        circleColorOuter = 0;
+                    }
 
                     TapTargetSequence tapTargetSequence = new TapTargetSequence(activity);
                     tapTargetSequence.continueOnCancel(true);
 
                     Typeface title = TypefaceHelper.getMedium(context);
-                    Typeface description = TypefaceHelper.getRegular(context);
 
                     if (recyclerView != null) {
                         int position = 0;
@@ -240,10 +284,14 @@ public class TapIntroHelper {
                                         TapTarget tapTarget = TapTarget.forView(view,
                                                 context.getResources().getString(R.string.tap_intro_request_select),
                                                 context.getResources().getString(R.string.tap_intro_request_select_desc))
-                                                .titleTextColorInt(primary)
-                                                .descriptionTextColorInt(secondary)
-                                                .targetCircleColorInt(primary)
+                                                .titleTextColorInt(titleColor)
+                                                .descriptionTextColorInt(descriptionColor)
+                                                .targetCircleColorInt(circleColorInner)
                                                 .drawShadow(Preferences.get(context).isTapIntroShadowEnabled());
+
+                                        if (circleColorOuter != 0) {
+                                            tapTarget.outerCircleColorInt(circleColorOuter);
+                                        }
 
                                         if (title != null) {
                                             tapTarget.textTypeface(title);
@@ -264,10 +312,14 @@ public class TapIntroHelper {
                         TapTarget tapTarget = TapTarget.forToolbarMenuItem(toolbar, R.id.menu_select_all,
                                 context.getResources().getString(R.string.tap_intro_request_select_all),
                                 context.getResources().getString(R.string.tap_intro_request_select_all_desc))
-                                .titleTextColorInt(primary)
-                                .descriptionTextColorInt(secondary)
-                                .targetCircleColorInt(primary)
+                                .titleTextColorInt(titleColor)
+                                .descriptionTextColorInt(descriptionColor)
+                                .targetCircleColorInt(circleColorInner)
                                 .drawShadow(Preferences.get(context).isTapIntroShadowEnabled());
+
+                        if (circleColorOuter != 0) {
+                            tapTarget.outerCircleColorInt(circleColorOuter);
+                        }
 
                         if (title != null) {
                             tapTarget.textTypeface(title);
@@ -285,11 +337,15 @@ public class TapIntroHelper {
                         TapTarget tapTarget = TapTarget.forView(fab,
                                 context.getResources().getString(R.string.tap_intro_request_send),
                                 context.getResources().getString(R.string.tap_intro_request_send_desc))
-                                .titleTextColorInt(primary)
-                                .descriptionTextColorInt(secondary)
-                                .targetCircleColorInt(primary)
+                                .titleTextColorInt(titleColor)
+                                .descriptionTextColorInt(descriptionColor)
+                                .targetCircleColorInt(circleColorInner)
                                 .tintTarget(false)
                                 .drawShadow(Preferences.get(context).isTapIntroShadowEnabled());
+
+                        if (circleColorOuter != 0) {
+                            tapTarget.outerCircleColorInt(circleColorOuter);
+                        }
 
                         if (title != null) {
                             tapTarget.textTypeface(title);
@@ -314,17 +370,22 @@ public class TapIntroHelper {
                                         if (holder != null) {
                                             View view = holder.itemView.findViewById(R.id.buy);
                                             if (view != null) {
-                                                float targetRadius = toDp(context, view.getMeasuredWidth()) - 10f;
+                                                float circleScale = 100.0f / context.getResources().getInteger(R.integer.tap_intro_circle_scale_percent);
+                                                float targetRadius = (toDp(context, view.getMeasuredWidth()) - 10f) * circleScale;
 
                                                 TapTarget tapTarget = TapTarget.forView(view,
                                                         context.getResources().getString(R.string.tap_intro_request_premium),
                                                         context.getResources().getString(R.string.tap_intro_request_premium_desc))
-                                                        .titleTextColorInt(primary)
-                                                        .descriptionTextColorInt(secondary)
-                                                        .targetCircleColorInt(primary)
+                                                        .titleTextColorInt(titleColor)
+                                                        .descriptionTextColorInt(descriptionColor)
+                                                        .targetCircleColorInt(circleColorInner)
                                                         .targetRadius((int) targetRadius)
                                                         .tintTarget(false)
                                                         .drawShadow(Preferences.get(context).isTapIntroShadowEnabled());
+
+                                                if (circleColorOuter != 0) {
+                                                    tapTarget.outerCircleColorInt(circleColorOuter);
+                                                }
 
                                                 if (title != null) {
                                                     tapTarget.textTypeface(title);
@@ -368,6 +429,7 @@ public class TapIntroHelper {
         }
     }
 
+    @SuppressLint("StringFormatInvalid")
     public static void showWallpapersIntro(@NonNull Context context, @Nullable RecyclerView recyclerView) {
         if (Preferences.get(context).isTimeToShowWallpapersIntro()) {
             AppCompatActivity activity = (AppCompatActivity) context;
@@ -377,8 +439,19 @@ public class TapIntroHelper {
             }
 
             new Handler().postDelayed(() -> {
-                int primary = ColorHelper.getAttributeColor(context, R.attr.toolbar_icon);
-                int secondary = ColorHelper.setColorAlpha(primary, 0.7f);
+                int titleColor = ColorHelper.getAttributeColor(context, R.attr.cb_tapIntroTitle);
+                int descriptionColor = ColorHelper.getAttributeColor(context, R.attr.cb_tapIntroDescription);
+                int circleColorInner = ColorHelper.getAttributeColor(context, R.attr.cb_tapIntroCircleInner);
+                int circleColorOuter = ColorHelper.getAttributeColor(context, R.attr.cb_tapIntroCircleOuter);
+
+                if (context.getResources().getBoolean(R.bool.use_legacy_intro_colors)) {
+                    int primary = ColorHelper.getAttributeColor(context, R.attr.cb_toolbarIcon);
+                    int secondary = ColorHelper.setColorAlpha(primary, 0.7f);
+                    titleColor = primary;
+                    descriptionColor = ColorHelper.setColorAlpha(primary, 0.7f);
+                    circleColorInner = secondary;
+                    circleColorOuter = 0;
+                }
 
                 if (recyclerView != null) {
                     TapTargetSequence tapTargetSequence = new TapTargetSequence(activity);
@@ -395,21 +468,21 @@ public class TapIntroHelper {
 
                         View view = holder.itemView.findViewById(R.id.image);
                         if (view != null) {
-                            float targetRadius = toDp(context, view.getMeasuredWidth()) - 10f;
+                            float circleScale = 100.0f / context.getResources().getInteger(R.integer.tap_intro_circle_scale_percent);
+                            float targetRadius = (toDp(context, view.getMeasuredWidth()) - 10f) * circleScale;
 
                             Typeface title = TypefaceHelper.getMedium(context);
-                            Typeface description = TypefaceHelper.getRegular(context);
 
-                            String desc = String.format(context.getResources().getString(R.string.tap_intro_wallpapers_option_desc),
+                            String desc = context.getResources().getString(R.string.tap_intro_wallpapers_option_desc,
                                     context.getResources().getBoolean(R.bool.enable_wallpaper_download) ?
                                             context.getResources().getString(R.string.tap_intro_wallpapers_option_desc_download) : "");
 
                             TapTarget tapTarget = TapTarget.forView(view,
                                     context.getResources().getString(R.string.tap_intro_wallpapers_option),
                                     desc)
-                                    .titleTextColorInt(primary)
-                                    .descriptionTextColorInt(secondary)
-                                    .targetCircleColorInt(primary)
+                                    .titleTextColorInt(titleColor)
+                                    .descriptionTextColorInt(descriptionColor)
+                                    .targetCircleColorInt(circleColorInner)
                                     .targetRadius((int) targetRadius)
                                     .tintTarget(false)
                                     .drawShadow(Preferences.get(context).isTapIntroShadowEnabled());
@@ -417,12 +490,17 @@ public class TapIntroHelper {
                             TapTarget tapTarget1 = TapTarget.forView(view,
                                     context.getResources().getString(R.string.tap_intro_wallpapers_preview),
                                     context.getResources().getString(R.string.tap_intro_wallpapers_preview_desc))
-                                    .titleTextColorInt(primary)
-                                    .descriptionTextColorInt(secondary)
-                                    .targetCircleColorInt(primary)
+                                    .titleTextColorInt(titleColor)
+                                    .descriptionTextColorInt(descriptionColor)
+                                    .targetCircleColorInt(circleColorInner)
                                     .targetRadius((int) targetRadius)
                                     .tintTarget(false)
                                     .drawShadow(Preferences.get(context).isTapIntroShadowEnabled());
+
+                            if (circleColorOuter != 0) {
+                                tapTarget.outerCircleColorInt(circleColorOuter);
+                                tapTarget1.outerCircleColorInt(circleColorOuter);
+                            }
 
                             if (title != null) {
                                 tapTarget.textTypeface(title);
@@ -471,13 +549,26 @@ public class TapIntroHelper {
 
             new Handler().postDelayed(() -> {
                 try {
-                    int baseColor = color;
-                    if (baseColor == 0) {
-                        baseColor = ColorHelper.getAttributeColor(context, R.attr.colorAccent);
+                    int circleColorOuter = color;
+                    if (circleColorOuter == 0) {
+                        circleColorOuter = ColorHelper.getAttributeColor(context, R.attr.cb_tapIntroCircleOuter);
                     }
 
-                    int primary = ColorHelper.getTitleTextColor(baseColor);
-                    int secondary = ColorHelper.setColorAlpha(primary, 0.7f);
+                    int titleColor = ColorHelper.getAttributeColor(context, R.attr.cb_tapIntroTitle);
+                    int descriptionColor = ColorHelper.getAttributeColor(context, R.attr.cb_tapIntroDescription);
+                    int circleColorInner = ColorHelper.getAttributeColor(context, R.attr.cb_tapIntroCircleInner);
+
+                    if (context.getResources().getBoolean(R.bool.use_legacy_intro_colors)) {
+                        int primary = ColorHelper.getAttributeColor(context, R.attr.cb_toolbarIcon);
+                        int secondary = ColorHelper.setColorAlpha(primary, 0.7f);
+                        titleColor = primary;
+                        descriptionColor = ColorHelper.setColorAlpha(primary, 0.7f);
+                        circleColorInner = secondary;
+                        circleColorOuter = ColorHelper.setColorAlpha(
+                                ColorHelper.getAttributeColor(context, com.google.android.material.R.attr.colorSecondary),
+                                0.7f
+                        );
+                    }
 
                     TapTargetSequence tapTargetSequence = new TapTargetSequence(activity);
                     tapTargetSequence.continueOnCancel(true);
@@ -492,20 +583,20 @@ public class TapIntroHelper {
                     TapTarget tapTarget = TapTarget.forView(apply,
                             context.getResources().getString(R.string.tap_intro_wallpaper_preview_apply),
                             context.getResources().getString(R.string.tap_intro_wallpaper_preview_apply_desc))
-                            .titleTextColorInt(primary)
-                            .descriptionTextColorInt(secondary)
-                            .targetCircleColorInt(primary)
-                            .outerCircleColorInt(baseColor)
-                            .drawShadow(true);
+                            .titleTextColorInt(titleColor)
+                            .descriptionTextColorInt(descriptionColor)
+                            .targetCircleColorInt(circleColorInner)
+                            .outerCircleColorInt(circleColorOuter)
+                            .drawShadow(Preferences.get(context).isTapIntroShadowEnabled());
 
                     TapTarget tapTarget1 = TapTarget.forView(save,
                             context.getResources().getString(R.string.tap_intro_wallpaper_preview_save),
                             context.getResources().getString(R.string.tap_intro_wallpaper_preview_save_desc))
-                            .titleTextColorInt(primary)
-                            .descriptionTextColorInt(secondary)
-                            .targetCircleColorInt(primary)
-                            .outerCircleColorInt(baseColor)
-                            .drawShadow(true);
+                            .titleTextColorInt(titleColor)
+                            .descriptionTextColorInt(descriptionColor)
+                            .targetCircleColorInt(circleColorInner)
+                            .outerCircleColorInt(circleColorOuter)
+                            .drawShadow(Preferences.get(context).isTapIntroShadowEnabled());
 
                     if (title != null) {
                         //Todo:

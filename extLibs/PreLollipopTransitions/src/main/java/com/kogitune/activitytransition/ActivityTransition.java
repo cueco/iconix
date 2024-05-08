@@ -21,7 +21,6 @@ import android.animation.TimeInterpolator;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Build;
 import android.os.Bundle;
 import android.transition.ChangeBounds;
 import android.transition.ChangeImageTransform;
@@ -32,7 +31,6 @@ import android.view.animation.DecelerateInterpolator;
 
 import androidx.core.view.ViewCompat;
 
-import com.kogitune.activitytransition.core.MoveData;
 import com.kogitune.activitytransition.core.TransitionAnimation;
 import com.kogitune.activitytransition.core.TransitionData;
 
@@ -40,12 +38,12 @@ public class ActivityTransition {
     private int duration = 1000;
     private View toView;
     private TimeInterpolator interpolator;
-    private Intent fromIntent;
+    private final Intent fromIntent;
     private String toViewName;
     private Context context;
 
     private ActivityTransition(Intent intent) {
-        this.fromIntent = intent;
+        fromIntent = intent;
     }
 
     public static ActivityTransition with(Intent intent) {
@@ -75,28 +73,22 @@ public class ActivityTransition {
         }
 
         final Bundle bundle = fromIntent.getExtras();
-        if (Build.VERSION.SDK_INT >= 21) {
-            final TransitionData transitionData = new TransitionData(toView.getContext(), bundle);
-            if (transitionData.imageFilePath != null) {
-                TransitionAnimation.setImageToView(toView, transitionData.imageFilePath);
-            }
-
-            ViewCompat.setTransitionName(toView, toViewName);
-            final Window window = ((Activity) context).getWindow();
-            TransitionSet set = new TransitionSet();
-            set.addTransition(new ChangeBounds());
-            set.addTransition(new ChangeImageTransform());
-            set.setInterpolator(interpolator);
-
-            window.setSharedElementEnterTransition(set);
-            window.setSharedElementReturnTransition(set);
-
-            return new ExitActivityTransition(null);
+        final TransitionData transitionData = new TransitionData(toView.getContext(), bundle);
+        if (transitionData.imageFilePath != null) {
+            TransitionAnimation.setImageToView(toView, transitionData.imageFilePath);
         }
-        final Context context = toView.getContext();
-        final MoveData moveData = TransitionAnimation.startAnimation(context, toView, bundle, savedInstanceState, duration, interpolator);
 
-        return new ExitActivityTransition(moveData);
+        ViewCompat.setTransitionName(toView, toViewName);
+        final Window window = ((Activity) context).getWindow();
+        TransitionSet set = new TransitionSet();
+        set.addTransition(new ChangeBounds());
+        set.addTransition(new ChangeImageTransform());
+        set.setInterpolator(interpolator);
+
+        window.setSharedElementEnterTransition(set);
+        window.setSharedElementReturnTransition(set);
+
+        return new ExitActivityTransition(null);
     }
 
 }

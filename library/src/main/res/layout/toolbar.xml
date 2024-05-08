@@ -1,12 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    tools:ignore="MissingPrefix"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/coordinator_layout"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="false">
 
-    <androidx.appcompat.widget.Toolbar
+    <!-- This view covers the gap created by inset margin of toolbar -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="10dp"
+        android:background="?attr/colorPrimary"
+        android:id="@+id/inset_padding"/>
+
+    <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
@@ -19,18 +26,18 @@
             android:layout_height="match_parent"
             android:gravity="center_vertical"
             android:text="@string/app_name"
-            android:textColor="?attr/toolbar_icon"
+            android:textColor="?cb_toolbarIcon"
             android:maxLines="1"
             android:ellipsize="end"
             android:textSize="@dimen/text_toolbar_title"
-            fontPath="fonts/Font-Medium.ttf" />
+            app:fontFamily="@font/medium" />
 
-    </androidx.appcompat.widget.Toolbar>
+    </com.google.android.material.appbar.MaterialToolbar>
 
     <FrameLayout
         android:id="@+id/container"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@+id/toolbar" />
+        android:layout_below="@+id/toolbar"/>
 
 </RelativeLayout>

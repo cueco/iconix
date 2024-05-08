@@ -5,10 +5,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.LinearLayout;
+import android.widget.RadioButton;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.widget.AppCompatRadioButton;
+
+import java.util.List;
 
 import candybar.lib.R;
 import candybar.lib.items.InAppBilling;
@@ -34,23 +36,23 @@ import candybar.lib.items.InAppBilling;
 public class InAppBillingAdapter extends BaseAdapter {
 
     private final Context mContext;
-    private final InAppBilling[] mInAppBillings;
+    private final List<InAppBilling> mInAppBillings;
 
     private int mSelectedPosition = 0;
 
-    public InAppBillingAdapter(@NonNull Context context, @NonNull InAppBilling[] inAppBillings) {
+    public InAppBillingAdapter(@NonNull Context context, @NonNull List<InAppBilling> inAppBillings) {
         mContext = context;
         mInAppBillings = inAppBillings;
     }
 
     @Override
     public int getCount() {
-        return mInAppBillings.length;
+        return mInAppBillings.size();
     }
 
     @Override
     public InAppBilling getItem(int position) {
-        return mInAppBillings[position];
+        return mInAppBillings.get(position);
     }
 
     @Override
@@ -68,8 +70,8 @@ public class InAppBillingAdapter extends BaseAdapter {
         } else {
             holder = (ViewHolder) view.getTag();
         }
-        if (position >= 0 && position < mInAppBillings.length) {
-            final InAppBilling inAppBilling = mInAppBillings[position];
+        if (position >= 0 && position < mInAppBillings.size()) {
+            final InAppBilling inAppBilling = mInAppBillings.get(position);
             if (inAppBilling != null) {
                 holder.radio.setChecked(mSelectedPosition == position);
 
@@ -86,9 +88,9 @@ public class InAppBillingAdapter extends BaseAdapter {
         return view;
     }
 
-    private class ViewHolder {
+    private static class ViewHolder {
 
-        private final AppCompatRadioButton radio;
+        private final RadioButton radio;
         private final TextView name;
         private final LinearLayout container;
 
@@ -100,6 +102,6 @@ public class InAppBillingAdapter extends BaseAdapter {
     }
 
     public InAppBilling getSelectedProduct() {
-        return mInAppBillings[mSelectedPosition];
+        return mInAppBillings.get(mSelectedPosition);
     }
 }

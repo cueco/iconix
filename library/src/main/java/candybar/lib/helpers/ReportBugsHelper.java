@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
-import android.os.AsyncTask;
 import android.util.Log;
 import android.widget.EditText;
 
@@ -24,6 +23,7 @@ import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -60,15 +60,12 @@ public class ReportBugsHelper {
     private static String UTF8 = "UTF8";
 
     public static void prepareReportBugs(@NonNull Context context) {
-        MaterialDialog.Builder builder = new MaterialDialog.Builder(context);
-        builder.customView(R.layout.dialog_report_bugs, true);
-        builder.typeface(
-                TypefaceHelper.getMedium(context),
-                TypefaceHelper.getRegular(context));
-        builder.positiveText(R.string.report_bugs_send);
-        builder.negativeText(R.string.close);
-
-        MaterialDialog dialog = builder.build();
+        MaterialDialog dialog = new MaterialDialog.Builder(context)
+                .customView(R.layout.dialog_report_bugs, true)
+                .typeface(TypefaceHelper.getMedium(context), TypefaceHelper.getRegular(context))
+                .positiveText(R.string.report_bugs_send)
+                .negativeText(R.string.close)
+                .build();
 
         EditText editText = (EditText) dialog.findViewById(R.id.input_desc);
         TextInputLayout inputLayout = (TextInputLayout) dialog.findViewById(R.id.input_layout);
@@ -76,7 +73,7 @@ public class ReportBugsHelper {
         dialog.getActionButton(DialogAction.POSITIVE).setOnClickListener(view -> {
             if (editText.getText().length() > 0) {
                 inputLayout.setErrorEnabled(false);
-                ReportBugsTask.start(context, editText.getText().toString(), AsyncTask.THREAD_POOL_EXECUTOR);
+                new ReportBugsTask(context, editText.getText().toString()).executeOnThreadPool();
                 dialog.dismiss();
                 return;
             }
@@ -99,18 +96,18 @@ public class ReportBugsHelper {
                 if (first) {
                     first = false;
                     writer.append("<!-- BROKEN APPFILTER -->")
-                            .append("\n").append("<!-- Broken appfilter will check for activities that included in appfilter but doesn't have a drawable")
-                            .append("\n").append("* ").append("The reason could because misnamed drawable or the drawable not copied to the project -->")
-                            .append("\n\n\n");
+                            .append("\r\n").append("<!-- Broken appfilter will check for activities that included in appfilter but doesn't have a drawable")
+                            .append("\r\n").append("* ").append("The reason could because misnamed drawable or the drawable not copied to the project -->")
+                            .append("\r\n\r\n\r\n");
                 }
 
                 int drawable = context.getResources().getIdentifier(
                         entry.getValue(), "drawable", context.getPackageName());
                 if (drawable == 0) {
                     writer.append("Activity: ").append(entry.getKey())
-                            .append("\n")
+                            .append("\r\n")
                             .append("Drawable: ").append(entry.getValue()).append(".png")
-                            .append("\n\n");
+                            .append("\r\n\r\n");
                 }
             }
 
@@ -145,20 +142,22 @@ public class ReportBugsHelper {
             }
 
             boolean first = true;
+            HashSet<String> addedIcons = new HashSet<>();
             for (Icon icon : icons) {
                 if (first) {
                     first = false;
                     writer.append("<!-- BROKEN DRAWABLES -->")
-                            .append("\n").append("<!-- Broken drawables will read drawables that listed in drawable.xml")
-                            .append("\n").append("* ").append("and try to match them with drawables that used in appfilter.xml")
-                            .append("\n").append("* ").append("The reason could be drawable copied to the project but not used in appfilter.xml -->")
-                            .append("\n\n\n");
+                            .append("\r\n").append("<!-- Broken drawables will read drawables that listed in drawable.xml")
+                            .append("\r\n").append("* ").append("and try to match them with drawables that used in appfilter.xml")
+                            .append("\r\n").append("* ").append("The reason could be drawable copied to the project but not used in appfilter.xml -->")
+                            .append("\r\n\r\n\r\n");
                 }
 
-                String drawable = drawables.get(icon.getTitle());
-                if (drawable == null || drawable.length() == 0) {
-                    writer.append("Drawable: ").append(icon.getTitle()).append(".png")
-                            .append("\n\n");
+                String drawable = drawables.get(icon.getDrawableName());
+                if ((drawable == null || drawable.length() == 0) && !addedIcons.contains(icon.getDrawableName())) {
+                    addedIcons.add(icon.getDrawableName());
+                    writer.append("Drawable: ").append(icon.getDrawableName()).append(".png")
+                            .append("\r\n\r\n");
                 }
             }
 
@@ -194,15 +193,15 @@ public class ReportBugsHelper {
                 if (first) {
                     first = false;
                     out.append("<!-- ACTIVITY LIST -->")
-                            .append("\n").append("<!-- Activity list is a list that contains all activity from installed apps -->")
-                            .append("\n\n\n");
+                            .append("\r\n").append("<!-- Activity list is a list that contains all activity from installed apps -->")
+                            .append("\r\n\r\n\r\n");
                 }
 
                 String name = app.activityInfo.loadLabel(context.getPackageManager()).toString();
                 String activity = app.activityInfo.packageName + "/" + app.activityInfo.name;
                 out.append("<!-- ").append(name).append(" -->");
-                out.append("\n").append(activity);
-                out.append("\n\n");
+                out.append("\r\n").append(activity);
+                out.append("\r\n\r\n");
             }
 
             out.flush();

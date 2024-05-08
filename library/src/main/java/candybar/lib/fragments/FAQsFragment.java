@@ -1,8 +1,13 @@
 package candybar.lib.fragments;
 
-import android.graphics.Color;
-import android.os.AsyncTask;
+import static candybar.lib.helpers.ViewHelper.setFastScrollColor;
+
+import android.annotation.SuppressLint;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -10,31 +15,30 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.inputmethod.EditorInfo;
+import android.widget.EditText;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.widget.SearchView;
-import androidx.core.view.MenuItemCompat;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.danimahardhika.android.helpers.core.ColorHelper;
-import com.danimahardhika.android.helpers.core.ViewHelper;
+import com.danimahardhika.android.helpers.core.SoftKeyboardHelper;
 import com.danimahardhika.android.helpers.core.utils.LogUtil;
 import com.pluscubed.recyclerfastscroll.RecyclerFastScroller;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import candybar.lib.R;
 import candybar.lib.adapters.FAQsAdapter;
+import candybar.lib.applications.CandyBarApplication;
 import candybar.lib.items.FAQs;
 import candybar.lib.preferences.Preferences;
-
-import static candybar.lib.helpers.ViewHelper.setFastScrollColor;
+import candybar.lib.utils.AsyncTaskBase;
 
 /*
  * CandyBar - Material Dashboard
@@ -61,7 +65,7 @@ public class FAQsFragment extends Fragment {
     private RecyclerFastScroller mFastScroll;
 
     private FAQsAdapter mAdapter;
-    private AsyncTask mAsyncTask;
+    private AsyncTaskBase mAsyncTask;
 
     @Nullable
     @Override
@@ -72,7 +76,7 @@ public class FAQsFragment extends Fragment {
         mSearchResult = view.findViewById(R.id.search_result);
         mFastScroll = view.findViewById(R.id.fastscroll);
 
-        if (!Preferences.get(getActivity()).isToolbarShadowEnabled()) {
+        if (!Preferences.get(requireActivity()).isToolbarShadowEnabled()) {
             View shadow = view.findViewById(R.id.shadow);
             if (shadow != null) shadow.setVisibility(View.GONE);
         }
@@ -80,8 +84,13 @@ public class FAQsFragment extends Fragment {
     }
 
     @Override
-    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        CandyBarApplication.getConfiguration().getAnalyticsHandler().logEvent(
+                "view",
+                new HashMap<String, Object>() {{ put("section", "faq"); }}
+        );
 
         mRecyclerView.setItemAnimator(new DefaultItemAnimator());
         mRecyclerView.setHasFixedSize(true);
@@ -90,37 +99,60 @@ public class FAQsFragment extends Fragment {
         setFastScrollColor(mFastScroll);
         mFastScroll.attachRecyclerView(mRecyclerView);
 
-        mAsyncTask = new FAQsLoader().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        mAsyncTask = new FAQsLoader().executeOnThreadPool();
     }
 
     @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+    public void onCreateOptionsMenu(@NonNull Menu menu, MenuInflater inflater) {
         inflater.inflate(R.menu.menu_search, menu);
         MenuItem search = menu.findItem(R.id.menu_search);
-        int color = ColorHelper.getAttributeColor(getActivity(), R.attr.toolbar_icon);
 
-        SearchView searchView = (SearchView) MenuItemCompat.getActionView(search);
-        searchView.setImeOptions(EditorInfo.IME_FLAG_NO_EXTRACT_UI);
-        searchView.setQueryHint(getActivity().getResources().getString(R.string.search_faqs));
-        searchView.setMaxWidth(Integer.MAX_VALUE);
+        View searchView = search.getActionView();
+        EditText searchInput = searchView.findViewById(R.id.search_input);
+        View clearQueryButton = searchView.findViewById(R.id.clear_query_button);
 
-        ViewHelper.setSearchViewTextColor(searchView, color);
-        ViewHelper.setSearchViewBackgroundColor(searchView, Color.TRANSPARENT);
+        searchInput.setHint(requireActivity().getResources().getString(R.string.search_faqs));
 
-        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+        searchInput.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+            }
 
             @Override
-            public boolean onQueryTextChange(String string) {
-                filterSearch(string);
+            public void afterTextChanged(Editable editable) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+                String query = charSequence.toString();
+                filterSearch(query);
+                clearQueryButton.setVisibility(query.contentEquals("") ? View.GONE : View.VISIBLE);
+            }
+        });
+
+        clearQueryButton.setOnClickListener(view -> searchInput.setText(""));
+
+        search.setOnActionExpandListener(new MenuItem.OnActionExpandListener() {
+            @Override
+            public boolean onMenuItemActionExpand(MenuItem menuItem) {
+                searchInput.requestFocus();
+
+                new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                    if (getActivity() != null) {
+                        SoftKeyboardHelper.openKeyboard(getActivity());
+                    }
+                }, 1000);
+
                 return true;
             }
 
             @Override
-            public boolean onQueryTextSubmit(String string) {
-                searchView.clearFocus();
+            public boolean onMenuItemActionCollapse(MenuItem menuItem) {
+                searchInput.setText("");
                 return true;
             }
         });
+
         super.onCreateOptionsMenu(menu, inflater);
     }
 
@@ -129,15 +161,16 @@ public class FAQsFragment extends Fragment {
         if (mAsyncTask != null) {
             mAsyncTask.cancel(true);
         }
+        setHasOptionsMenu(false);
         super.onDestroy();
     }
 
+    @SuppressLint("StringFormatInvalid")
     private void filterSearch(String query) {
         try {
             mAdapter.search(query);
             if (mAdapter.getFaqsCount() == 0) {
-                String text = String.format(getActivity().getResources().getString(
-                        R.string.search_noresult), query);
+                String text = requireActivity().getResources().getString(R.string.search_noresult, query);
                 mSearchResult.setText(text);
                 mSearchResult.setVisibility(View.VISIBLE);
             } else mSearchResult.setVisibility(View.GONE);
@@ -146,23 +179,22 @@ public class FAQsFragment extends Fragment {
         }
     }
 
-    private class FAQsLoader extends AsyncTask<Void, Void, Boolean> {
+    private class FAQsLoader extends AsyncTaskBase {
 
         private List<FAQs> faqs;
         private String[] questions;
         private String[] answers;
 
         @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
+        protected void preRun() {
             faqs = new ArrayList<>();
             questions = getResources().getStringArray(R.array.questions);
             answers = getResources().getStringArray(R.array.answers);
         }
 
         @Override
-        protected Boolean doInBackground(Void... voids) {
-            while (!isCancelled()) {
+        protected boolean run() {
+            if (!isCancelled()) {
                 try {
                     Thread.sleep(1);
                     for (int i = 0; i < questions.length; i++) {
@@ -181,13 +213,12 @@ public class FAQsFragment extends Fragment {
         }
 
         @Override
-        protected void onPostExecute(Boolean aBoolean) {
-            super.onPostExecute(aBoolean);
+        protected void postRun(boolean ok) {
             if (getActivity() == null) return;
             if (getActivity().isFinishing()) return;
 
             mAsyncTask = null;
-            if (aBoolean) {
+            if (ok) {
                 setHasOptionsMenu(true);
                 mAdapter = new FAQsAdapter(getActivity(), faqs);
                 mRecyclerView.setAdapter(mAdapter);

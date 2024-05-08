@@ -1,5 +1,7 @@
 package com.candybar.dev.licenses;
 
+import com.candybar.dev.BuildConfig;
+
 import candybar.lib.items.InAppBilling;
 
 public class License {
@@ -25,15 +27,15 @@ public class License {
      * Get string
      */
     private static final byte[] SALT = new byte[]{
-            //Put generated random bytes below, separate with comma, ex: 14, 23, 58, 85, ...
-
+            // Put generated random bytes below, separate with comma, ex: 14, 23, 58, 85, ...
+            // 1, 4, 81, 99, 95, 66, 64, 85, 51, 17, 39, 86, 61, 79, 19, 82, 74, 33, 47, 25,
     };
 
     /*
      * Your license key
      * If your app hasn't published at play store, publish it first as beta, get license key
      */
-    private static final String LICENSE_KEY = "YOUR LICENSE KEY";
+    private static final String LICENSE_KEY = BuildConfig.LICENSE_KEY;
 
     /*
      * NOTE: Make sure your app name in project same as app name at play store listing
@@ -49,10 +51,10 @@ public class License {
      * Format: new InAppBilling("premium request product id", number of icons)
      */
     private static final InAppBilling[] PREMIUM_REQUEST_PRODUCTS = new InAppBilling[]{
-            new InAppBilling("your.product.id", 1),
-            new InAppBilling("your.product.id", 2),
-            new InAppBilling("your.product.id", 3),
-            new InAppBilling("your.product.id", 4)
+            new InAppBilling("premium_1", 2),
+            new InAppBilling("premium_2", 4),
+            new InAppBilling("premium_3", 6),
+            new InAppBilling("premium_4", 8)
     };
 
     /*
@@ -64,10 +66,9 @@ public class License {
      * Format: new InAppBilling("donation product id")
      */
     private static final InAppBilling[] DONATION_PRODUCT = new InAppBilling[]{
-            new InAppBilling("your.product.id"),
-            new InAppBilling("your.product.id"),
-            new InAppBilling("your.product.id"),
-            new InAppBilling("your.product.id")
+            new InAppBilling("donation.level_1"),
+            new InAppBilling("donation.level_2"),
+            new InAppBilling("donation.level_3")
     };
 
     public static boolean isLicenseCheckerEnabled() {

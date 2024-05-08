@@ -1,5 +1,6 @@
 package candybar.lib.fragments.dialog;
 
+import android.app.Activity;
 import android.app.Dialog;
 import android.content.DialogInterface;
 import android.os.Bundle;
@@ -40,10 +41,6 @@ import candybar.lib.utils.listeners.HomeListener;
 
 public class ChangelogFragment extends DialogFragment {
 
-    private ListView mChangelogList;
-    private TextView mChangelogDate;
-    private TextView mChangelogVersion;
-
     private static final String TAG = "candybar.dialog.changelog";
 
     private static ChangelogFragment newInstance() {
@@ -67,47 +64,44 @@ public class ChangelogFragment extends DialogFragment {
     @NonNull
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
-        MaterialDialog.Builder builder = new MaterialDialog.Builder(getActivity());
-        builder.typeface(
-                TypefaceHelper.getMedium(getActivity()),
-                TypefaceHelper.getRegular(getActivity()));
-        builder.customView(R.layout.fragment_changelog, false);
-        builder.positiveText(R.string.close);
-        MaterialDialog dialog = builder.build();
+        MaterialDialog dialog = new MaterialDialog.Builder(requireActivity())
+                .typeface(TypefaceHelper.getMedium(requireActivity()), TypefaceHelper.getRegular(requireActivity()))
+                .customView(R.layout.fragment_changelog, false)
+                .positiveText(R.string.close)
+                .build();
         dialog.show();
 
-        mChangelogList = (ListView) dialog.findViewById(R.id.changelog_list);
-        mChangelogDate = (TextView) dialog.findViewById(R.id.changelog_date);
-        mChangelogVersion = (TextView) dialog.findViewById(R.id.changelog_version);
-        return dialog;
-    }
+        ListView changelogList = (ListView) dialog.findViewById(R.id.changelog_list);
+        TextView changelogDate = (TextView) dialog.findViewById(R.id.changelog_date);
+        TextView changelogVersion = (TextView) dialog.findViewById(R.id.changelog_version);
 
-    @Override
-    public void onActivityCreated(Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
+        Activity activity = requireActivity();
         try {
-            String version = getActivity().getPackageManager().getPackageInfo(
-                    getActivity().getPackageName(), 0).versionName;
+            String version = activity.getPackageManager().getPackageInfo(
+                    activity.getPackageName(), 0).versionName;
             if (version != null && version.length() > 0) {
-                mChangelogVersion.setText(getActivity().getResources().getString(
-                        R.string.changelog_version) + " " + version);
+                changelogVersion.setText(activity.getResources().getString(
+                        R.string.changelog_version));
+                changelogVersion.append(" " + version);
             }
         } catch (Exception ignored) {
         }
 
-        String date = getActivity().getResources().getString(R.string.changelog_date);
-        if (date.length() > 0) mChangelogDate.setText(date);
-        else mChangelogDate.setVisibility(View.GONE);
+        String date = activity.getResources().getString(R.string.changelog_date);
+        if (date.length() > 0) changelogDate.setText(date);
+        else changelogDate.setVisibility(View.GONE);
 
-        String[] changelog = getActivity().getResources().getStringArray(R.array.changelog);
-        mChangelogList.setAdapter(new ChangelogAdapter(getActivity(), changelog));
+        String[] changelog = activity.getResources().getStringArray(R.array.changelog);
+        changelogList.setAdapter(new ChangelogAdapter(requireActivity(), changelog));
+
+        return dialog;
     }
 
     @Override
-    public void onDismiss(DialogInterface dialog) {
+    public void onDismiss(@NonNull DialogInterface dialog) {
         super.onDismiss(dialog);
 
-        FragmentManager fm = getActivity().getSupportFragmentManager();
+        FragmentManager fm = requireActivity().getSupportFragmentManager();
         if (fm != null) {
             Fragment fragment = fm.findFragmentByTag("home");
             if (fragment != null) {

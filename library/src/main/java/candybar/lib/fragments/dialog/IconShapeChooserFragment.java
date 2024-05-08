@@ -18,6 +18,7 @@ import java.util.List;
 import candybar.lib.R;
 import candybar.lib.adapters.dialog.IconShapeAdapter;
 import candybar.lib.fragments.IconsFragment;
+import candybar.lib.fragments.IconsSearchFragment;
 import candybar.lib.helpers.IconShapeHelper;
 import candybar.lib.helpers.TypefaceHelper;
 import candybar.lib.items.IconShape;
@@ -43,7 +44,6 @@ import candybar.lib.preferences.Preferences;
 
 public class IconShapeChooserFragment extends DialogFragment {
 
-    private ListView mListView;
     private int mShape;
 
     public static final String TAG = "candybar.dialog.iconshapes";
@@ -69,24 +69,17 @@ public class IconShapeChooserFragment extends DialogFragment {
     @NonNull
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
-        MaterialDialog.Builder builder = new MaterialDialog.Builder(getActivity());
-        builder.customView(R.layout.fragment_languages, false);
-        builder.typeface(TypefaceHelper.getMedium(getActivity()), TypefaceHelper.getRegular(getActivity()));
-        builder.title(R.string.icon_shape);
-        builder.negativeText(R.string.close);
-        MaterialDialog dialog = builder.build();
+        MaterialDialog dialog = new MaterialDialog.Builder(requireActivity())
+                .customView(R.layout.fragment_languages, false)
+                .typeface(TypefaceHelper.getMedium(requireActivity()), TypefaceHelper.getRegular(requireActivity()))
+                .title(R.string.icon_shape)
+                .negativeText(R.string.close)
+                .build();
         dialog.show();
 
-        mListView = (ListView) dialog.findViewById(R.id.listview);
-        return dialog;
-    }
-
-    @Override
-    public void onActivityCreated(Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
-
+        ListView listView = (ListView) dialog.findViewById(R.id.listview);
         List<IconShape> iconShapes = IconShapeHelper.getShapes();
-        int currentShape = Preferences.get(getActivity()).getIconShape();
+        int currentShape = mShape = Preferences.get(requireActivity()).getIconShape();
         int currentShapeIndex = 0;
 
         for (int i = 0; i < iconShapes.size(); i++) {
@@ -97,13 +90,19 @@ public class IconShapeChooserFragment extends DialogFragment {
             }
         }
 
-        mListView.setAdapter(new IconShapeAdapter(getActivity(), iconShapes, currentShapeIndex));
+        listView.setAdapter(new IconShapeAdapter(requireActivity(), iconShapes, currentShapeIndex));
+
+        return dialog;
     }
 
     @Override
-    public void onDismiss(DialogInterface dialog) {
-        Preferences.get(getActivity()).setIconShape(mShape);
-        IconsFragment.reloadIcons();
+    public void onDismiss(@NonNull DialogInterface dialog) {
+        int prevShape = Preferences.get(requireActivity()).getIconShape();
+        if (prevShape != mShape) {
+            Preferences.get(requireActivity()).setIconShape(mShape);
+            IconsFragment.reloadIcons();
+            IconsSearchFragment.reloadIcons();
+        }
         super.onDismiss(dialog);
     }
 

@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    tools:ignore="MissingPrefix"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:background="?attr/card_background">
+    android:background="?cb_cardBackground">
 
     <View
         android:id="@+id/divider"
@@ -15,7 +14,6 @@
 
     <TextView
         android:id="@+id/title"
-        fontPath="fonts/Font-Medium.ttf"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginEnd="@dimen/content_margin"
@@ -26,13 +24,15 @@
         android:drawablePadding="@dimen/content_margin"
         android:gravity="center_vertical"
         android:textColor="?android:attr/textColorPrimary"
-        android:textSize="@dimen/text_content_header" />
+        android:textSize="@dimen/text_content_header"
+        app:fontFamily="@font/medium" />
 
     <LinearLayout
         android:id="@+id/container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
+        android:gravity="center_vertical"
         android:padding="@dimen/content_margin"
         android:background="?attr/selectableItemBackground"
         android:theme="@style/RippleStyle">
@@ -51,7 +51,7 @@
                 android:layout_height="wrap_content"
                 android:textColor="?android:attr/textColorPrimary"
                 android:textSize="@dimen/text_content_title"
-                fontPath="fonts/Font-Regular.ttf" />
+                app:fontFamily="@font/regular" />
 
             <TextView
                 android:id="@+id/content"
@@ -59,18 +59,25 @@
                 android:layout_height="wrap_content"
                 android:textColor="?android:attr/textColorSecondary"
                 android:textSize="@dimen/text_content"
-                fontPath="fonts/Font-Regular.ttf" />
+                app:fontFamily="@font/regular" />
 
             <TextView
                 android:id="@+id/footer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/content_padding"
-                android:textColor="?attr/colorAccent"
+                android:textColor="?colorSecondary"
                 android:textSize="@dimen/text_content"
-                fontPath="fonts/Font-Regular.ttf" />
+                app:fontFamily="@font/regular" />
 
         </LinearLayout>
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:visibility="gone"
+            android:id="@+id/switch_key"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:theme="@style/AccentChange" />
 
     </LinearLayout>
 

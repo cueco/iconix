@@ -5,25 +5,31 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.danimahardhika.android.helpers.core.ColorHelper;
+import com.danimahardhika.android.helpers.core.DrawableHelper;
 import com.danimahardhika.android.helpers.core.ViewHelper;
-import com.pluscubed.recyclerfastscroll.RecyclerFastScroller;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import candybar.lib.R;
 import candybar.lib.activities.CandyBarMainActivity;
 import candybar.lib.adapters.IconsAdapter;
+import candybar.lib.applications.CandyBarApplication;
+import candybar.lib.databases.Database;
 import candybar.lib.items.Icon;
-
-import static candybar.lib.helpers.ViewHelper.setFastScrollColor;
+import me.zhanghai.android.fastscroll.FastScrollerBuilder;
 
 /*
  * CandyBar - Material Dashboard
@@ -45,23 +51,26 @@ import static candybar.lib.helpers.ViewHelper.setFastScrollColor;
 
 public class IconsFragment extends Fragment {
 
+    private View mNoBookmarksFoundView;
     private RecyclerView mRecyclerView;
-    private RecyclerFastScroller mFastScroll;
     private IconsAdapter mAdapter;
 
     private List<Icon> mIcons;
+    private boolean isBookmarksFragment;
+    private boolean prevIsEmpty = false;
 
     private static final String INDEX = "index";
 
-    private static final List<IconsAdapter> iconsAdapters = new ArrayList<>();
+    private static final List<WeakReference<IconsAdapter>> iconsAdapters = new ArrayList<>();
+    private static WeakReference<IconsFragment> bookmarksIconFragment = new WeakReference<>(null);
 
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_icons, container, false);
+        mNoBookmarksFoundView = view.findViewById(R.id.no_bookmarks_found_container);
         mRecyclerView = view.findViewById(R.id.icons_grid);
-        mFastScroll = view.findViewById(R.id.fastscroll);
         return view;
     }
 
@@ -77,44 +86,91 @@ public class IconsFragment extends Fragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mIcons = new ArrayList<>();
-        int index = getArguments().getInt(INDEX);
-        if (CandyBarMainActivity.sSections != null)
+        int index = requireArguments().getInt(INDEX);
+        if (index == -1) {
+            mIcons = Database.get(requireActivity()).getBookmarkedIcons(requireActivity());
+            bookmarksIconFragment = new WeakReference<>(this);
+            isBookmarksFragment = true;
+            prevIsEmpty = mIcons.size() == 0;
+        } else if (CandyBarMainActivity.sSections != null) {
             mIcons = CandyBarMainActivity.sSections.get(index).getIcons();
+        }
     }
 
     @Override
-    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        CandyBarApplication.getConfiguration().getAnalyticsHandler().logEvent(
+                "view",
+                new HashMap<String, Object>() {{ put("section", "icons"); }}
+        );
+
+        setupViewVisibility();
 
         mRecyclerView.setHasFixedSize(true);
         mRecyclerView.setItemAnimator(new DefaultItemAnimator());
         mRecyclerView.setLayoutManager(new GridLayoutManager(getActivity(),
-                getActivity().getResources().getInteger(R.integer.icons_column_count)));
+                requireActivity().getResources().getInteger(R.integer.icons_column_count)));
 
-        setFastScrollColor(mFastScroll);
-        mFastScroll.attachRecyclerView(mRecyclerView);
+        new FastScrollerBuilder(mRecyclerView)
+                .useMd2Style()
+                .setPopupTextProvider(position -> {
+                    Icon icon = mIcons.get(position);
+                    String name = icon.getTitle();
+                    if ((icon.getCustomName() != null) && (!icon.getCustomName().contentEquals(""))) {
+                        name = icon.getCustomName();
+                    }
+                    if (name != null) {
+                        return name.substring(0, 1);
+                    }
+                    return "";
+                })
+                .build();
 
-        mAdapter = new IconsAdapter(getActivity(), mIcons, false, this);
+        ((ImageView) mNoBookmarksFoundView.findViewById(R.id.bookmark_image))
+                .setImageDrawable(DrawableHelper.getTintedDrawable(requireActivity(), R.drawable.ic_bookmark,
+                        ColorHelper.getAttributeColor(requireActivity(), android.R.attr.textColorSecondary)));
+
+        mAdapter = new IconsAdapter(requireActivity(), mIcons, this, isBookmarksFragment);
         mRecyclerView.setAdapter(mAdapter);
-        iconsAdapters.add(mAdapter);
+        iconsAdapters.add(new WeakReference<>(mAdapter));
+    }
+
+    private void setupViewVisibility() {
+        if (isBookmarksFragment && mIcons.size() == 0) {
+            mNoBookmarksFoundView.setVisibility(View.VISIBLE);
+            mRecyclerView.setVisibility(View.GONE);
+        } else {
+            mNoBookmarksFoundView.setVisibility(View.GONE);
+            mRecyclerView.setVisibility(View.VISIBLE);
+        }
     }
 
     @Override
-    public void onDestroy() {
-        if (mAdapter != null) iconsAdapters.remove(mAdapter);
-        super.onDestroy();
-    }
-
-    @Override
-    public void onConfigurationChanged(Configuration newConfig) {
+    public void onConfigurationChanged(@NonNull Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
         ViewHelper.resetSpanCount(mRecyclerView,
-                getActivity().getResources().getInteger(R.integer.icons_column_count));
+                requireActivity().getResources().getInteger(R.integer.icons_column_count));
+    }
+
+    public void refreshBookmarks() {
+        if (isBookmarksFragment && isAdded()) {
+            mIcons = Database.get(requireActivity()).getBookmarkedIcons(requireActivity());
+            mAdapter.setIcons(mIcons);
+            setupViewVisibility();
+        }
     }
 
     public static void reloadIcons() {
-        for (IconsAdapter adapter : iconsAdapters) {
-            adapter.reloadIcons();
+        for (WeakReference<IconsAdapter> adapterRef : iconsAdapters) {
+            if (adapterRef.get() != null) adapterRef.get().reloadIcons();
+        }
+    }
+
+    public static void reloadBookmarks() {
+        if (bookmarksIconFragment.get() != null) {
+            bookmarksIconFragment.get().refreshBookmarks();
         }
     }
 }

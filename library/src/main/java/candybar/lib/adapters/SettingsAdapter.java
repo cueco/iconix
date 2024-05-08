@@ -1,5 +1,8 @@
 package candybar.lib.adapters;
 
+import static candybar.lib.items.Setting.Type.MATERIAL_YOU;
+
+import android.app.Activity;
 import android.content.Context;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -20,14 +23,17 @@ import com.danimahardhika.android.helpers.core.ColorHelper;
 import com.danimahardhika.android.helpers.core.DrawableHelper;
 import com.danimahardhika.android.helpers.core.FileHelper;
 import com.danimahardhika.android.helpers.core.utils.LogUtil;
+import com.google.android.material.materialswitch.MaterialSwitch;
 
 import java.io.File;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+import java.util.HashMap;
 import java.util.List;
 
 import candybar.lib.R;
 import candybar.lib.activities.CandyBarMainActivity;
+import candybar.lib.applications.CandyBarApplication;
 import candybar.lib.databases.Database;
 import candybar.lib.fragments.SettingsFragment;
 import candybar.lib.fragments.dialog.ChangelogFragment;
@@ -37,6 +43,7 @@ import candybar.lib.helpers.ReportBugsHelper;
 import candybar.lib.helpers.TypefaceHelper;
 import candybar.lib.items.Setting;
 import candybar.lib.preferences.Preferences;
+import candybar.lib.tasks.IconRequestTask;
 import candybar.lib.utils.listeners.InAppBillingListener;
 
 /*
@@ -70,8 +77,9 @@ public class SettingsAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
         mSettings = settings;
     }
 
+    @NonNull
     @Override
-    public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         if (viewType == TYPE_CONTENT) {
             View view = LayoutInflater.from(mContext).inflate(
                     R.layout.fragment_settings_item_list, parent, false);
@@ -126,6 +134,14 @@ public class SettingsAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
                             DrawableHelper.getTintedDrawable(mContext, setting.getIcon(), color), null, null, null);
                 }
             }
+
+            if (setting.getType() == MATERIAL_YOU) {
+                contentViewHolder.materialSwitch.setVisibility(View.VISIBLE);
+                contentViewHolder.container.setClickable(false);
+                int pad = contentViewHolder.container.getPaddingLeft();
+                contentViewHolder.container.setPadding(pad, 0, pad, 0);
+                contentViewHolder.materialSwitch.setChecked(Preferences.get(mContext).isMaterialYou());
+            }
         }
     }
 
@@ -148,6 +164,7 @@ public class SettingsAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
         private final TextView footer;
         private final LinearLayout container;
         private final View divider;
+        private final MaterialSwitch materialSwitch;
 
         ContentViewHolder(View itemView) {
             super(itemView);
@@ -157,29 +174,53 @@ public class SettingsAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
             footer = itemView.findViewById(R.id.footer);
             divider = itemView.findViewById(R.id.divider);
             container = itemView.findViewById(R.id.container);
+            materialSwitch = itemView.findViewById(R.id.switch_key);
 
             container.setOnClickListener(this);
+            materialSwitch.setOnCheckedChangeListener((compoundButton, isChecked) -> {
+                // No case required for now as the switch is only for
+                // material you
+                LogUtil.d("CHECK STATUS: " + isChecked);
+                if (isChecked != Preferences.get(mContext).isMaterialYou()) {
+                    Preferences.get(mContext).setMaterialYou(isChecked);
+                    ((Activity) mContext).recreate();
+                }
+            });
         }
 
         @Override
         public void onClick(View view) {
             int id = view.getId();
             if (id == R.id.container) {
-                int position = getAdapterPosition();
+                int position = getBindingAdapterPosition();
 
                 if (position < 0 || position > mSettings.size()) return;
 
                 Setting setting = mSettings.get(position);
                 switch (setting.getType()) {
                     case CACHE:
+                        CandyBarApplication.getConfiguration().getAnalyticsHandler().logEvent(
+                                "click",
+                                new HashMap<String, Object>() {{
+                                    put("section", "settings");
+                                    put("action", "open_dialog");
+                                    put("item", "clear_cache");
+                                }}
+                        );
                         new MaterialDialog.Builder(mContext)
-                                .typeface(
-                                        TypefaceHelper.getMedium(mContext),
-                                        TypefaceHelper.getRegular(mContext))
+                                .typeface(TypefaceHelper.getMedium(mContext), TypefaceHelper.getRegular(mContext))
                                 .content(R.string.pref_data_cache_clear_dialog)
                                 .positiveText(R.string.clear)
                                 .negativeText(android.R.string.cancel)
                                 .onPositive((dialog, which) -> {
+                                    CandyBarApplication.getConfiguration().getAnalyticsHandler().logEvent(
+                                            "click",
+                                            new HashMap<String, Object>() {{
+                                                put("section", "settings");
+                                                put("action", "confirm");
+                                                put("item", "clear_cache");
+                                            }}
+                                    );
                                     try {
                                         File cache = mContext.getCacheDir();
                                         FileHelper.clearDirectory(cache);
@@ -187,9 +228,8 @@ public class SettingsAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
                                         double size = (double) FileHelper.getDirectorySize(cache) / FileHelper.MB;
                                         NumberFormat formatter = new DecimalFormat("#0.00");
 
-                                        setting.setFooter(String.format(mContext.getResources().getString(
-                                                R.string.pref_data_cache_size),
-                                                formatter.format(size) + " MB"));
+                                        setting.setFooter(mContext.getResources().getString(
+                                                R.string.pref_data_cache_size, formatter.format(size) + " MB"));
                                         notifyItemChanged(position);
 
                                         Toast.makeText(mContext, R.string.pref_data_cache_cleared,
@@ -198,27 +238,70 @@ public class SettingsAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
                                         LogUtil.e(Log.getStackTraceString(e));
                                     }
                                 })
+                                .onNegative(((dialog, which) -> {
+                                    CandyBarApplication.getConfiguration().getAnalyticsHandler().logEvent(
+                                            "click",
+                                            new HashMap<String, Object>() {{
+                                                put("section", "settings");
+                                                put("action", "cancel");
+                                                put("item", "clear_cache");
+                                            }}
+                                    );
+                                }))
                                 .show();
                         break;
                     case ICON_REQUEST:
+                        CandyBarApplication.getConfiguration().getAnalyticsHandler().logEvent(
+                                "click",
+                                new HashMap<String, Object>() {{
+                                    put("section", "settings");
+                                    put("action", "open_dialog");
+                                    put("item", "clear_icon_request_data");
+                                }}
+                        );
                         new MaterialDialog.Builder(mContext)
-                                .typeface(
-                                        TypefaceHelper.getMedium(mContext),
-                                        TypefaceHelper.getRegular(mContext))
+                                .typeface(TypefaceHelper.getMedium(mContext), TypefaceHelper.getRegular(mContext))
                                 .content(R.string.pref_data_request_clear_dialog)
                                 .positiveText(R.string.clear)
                                 .negativeText(android.R.string.cancel)
                                 .onPositive((dialog, which) -> {
+                                    CandyBarApplication.getConfiguration().getAnalyticsHandler().logEvent(
+                                            "click",
+                                            new HashMap<String, Object>() {{
+                                                put("section", "settings");
+                                                put("action", "confirm");
+                                                put("item", "clear_icon_request_data");
+                                            }}
+                                    );
                                     Database.get(mContext).deleteIconRequestData();
 
                                     CandyBarMainActivity.sMissedApps = null;
+                                    new IconRequestTask(mContext).executeOnThreadPool();
 
                                     Toast.makeText(mContext, R.string.pref_data_request_cleared,
                                             Toast.LENGTH_LONG).show();
                                 })
+                                .onNegative(((dialog, which) -> {
+                                    CandyBarApplication.getConfiguration().getAnalyticsHandler().logEvent(
+                                            "click",
+                                            new HashMap<String, Object>() {{
+                                                put("section", "settings");
+                                                put("action", "cancel");
+                                                put("item", "clear_icon_request_data");
+                                            }}
+                                    );
+                                }))
                                 .show();
                         break;
                     case RESTORE:
+                        CandyBarApplication.getConfiguration().getAnalyticsHandler().logEvent(
+                                "click",
+                                new HashMap<String, Object>() {{
+                                    put("section", "settings");
+                                    put("item", "restore_purchase_data");
+                                    put("action", "confirm_without_dialog");
+                                }}
+                        );
                         try {
                             InAppBillingListener listener = (InAppBillingListener) mContext;
                             listener.onRestorePurchases();
@@ -226,6 +309,14 @@ public class SettingsAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
                         }
                         break;
                     case PREMIUM_REQUEST:
+                        CandyBarApplication.getConfiguration().getAnalyticsHandler().logEvent(
+                                "click",
+                                new HashMap<String, Object>() {{
+                                    put("section", "settings");
+                                    put("item", "rebuild_premium_request");
+                                    put("action", "confirm_without_dialog");
+                                }}
+                        );
                         FragmentManager fm = ((AppCompatActivity) mContext).getSupportFragmentManager();
                         if (fm == null) return;
 
@@ -237,20 +328,59 @@ public class SettingsAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
                         }
                         break;
                     case THEME:
+                        CandyBarApplication.getConfiguration().getAnalyticsHandler().logEvent(
+                                "click",
+                                new HashMap<String, Object>() {{
+                                    put("section", "settings");
+                                    put("item", "change_theme");
+                                    put("action", "open_dialog");
+                                }}
+                        );
                         ThemeChooserFragment.showThemeChooser(((AppCompatActivity) mContext).getSupportFragmentManager());
                         break;
-                    case WALLPAPER:
-                        break;
                     case LANGUAGE:
+                        CandyBarApplication.getConfiguration().getAnalyticsHandler().logEvent(
+                                "click",
+                                new HashMap<String, Object>() {{
+                                    put("section", "settings");
+                                    put("item", "change_language");
+                                    put("action", "open_dialog");
+                                }}
+                        );
                         LanguagesFragment.showLanguageChooser(((AppCompatActivity) mContext).getSupportFragmentManager());
                         break;
                     case REPORT_BUGS:
+                        CandyBarApplication.getConfiguration().getAnalyticsHandler().logEvent(
+                                "click",
+                                new HashMap<String, Object>() {{
+                                    put("section", "settings");
+                                    put("item", "report_bugs");
+                                    put("action", "open_dialog");
+                                }}
+                        );
                         ReportBugsHelper.prepareReportBugs(mContext);
                         break;
                     case CHANGELOG:
+                        CandyBarApplication.getConfiguration().getAnalyticsHandler().logEvent(
+                                "click",
+                                new HashMap<String, Object>() {{
+                                    put("section", "settings");
+                                    put("item", "changelog");
+                                    put("action", "open_dialog");
+                                }}
+                        );
                         ChangelogFragment.showChangelog(((AppCompatActivity) mContext).getSupportFragmentManager());
                         break;
                     case RESET_TUTORIAL:
+                        CandyBarApplication.getConfiguration().getAnalyticsHandler().logEvent(
+                                "click",
+                                new HashMap<String, Object>() {{
+                                    put("section", "settings");
+                                    put("item", "reset_tutorial");
+                                    put("action", "confirm_without_dialog");
+                                }}
+                        );
+                        Preferences.get(mContext).setIntroReset(true);
                         Preferences.get(mContext).setTimeToShowHomeIntro(true);
                         Preferences.get(mContext).setTimeToShowIconsIntro(true);
                         Preferences.get(mContext).setTimeToShowRequestIntro(true);

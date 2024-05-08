@@ -5,11 +5,11 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.LinearLayout;
+import android.widget.RadioButton;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.AppCompatRadioButton;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 
@@ -39,9 +39,9 @@ import candybar.lib.items.Language;
 
 public class LanguagesAdapter extends BaseAdapter {
 
-    private Context mContext;
-    private List<Language> mLanguages;
-    private int mSelectedIndex;
+    private final Context mContext;
+    private final List<Language> mLanguages;
+    private final int mSelectedIndex;
 
     public LanguagesAdapter(@NonNull Context context, @NonNull List<Language> languages, int selectedIndex) {
         mContext = context;
@@ -69,7 +69,7 @@ public class LanguagesAdapter extends BaseAdapter {
         LanguagesAdapter.ViewHolder holder;
         if (view == null) {
             view = View.inflate(mContext, R.layout.fragment_inapp_dialog_item_list, null);
-            holder = new LanguagesAdapter.ViewHolder(view);
+            holder = new ViewHolder(view);
             view.setTag(holder);
         } else {
             holder = (LanguagesAdapter.ViewHolder) view.getTag();
@@ -92,9 +92,9 @@ public class LanguagesAdapter extends BaseAdapter {
         return view;
     }
 
-    private class ViewHolder {
+    private static class ViewHolder {
 
-        private final AppCompatRadioButton radio;
+        private final RadioButton radio;
         private final TextView name;
         private final LinearLayout container;
 

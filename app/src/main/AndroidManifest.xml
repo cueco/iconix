@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:installLocation="auto"
-    package="com.candybar.dev">
+    android:installLocation="auto">
 
     <!-- If you are not using donation and premium request, you need to remove BILLING permission -->
     <uses-permission android:name="com.android.vending.BILLING" />
@@ -17,23 +16,23 @@
         android:xlargeScreens="true" />
 
     <application
-        tools:ignore="GoogleAppIndexingWarning,GoogleAppIndexingUrlError"
+        tools:ignore="AllowBackup,GoogleAppIndexingUrlError,GoogleAppIndexingWarning"
         android:name=".applications.CandyBar"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:networkSecurityConfig="@xml/network_config"
-        android:requestLegacyExternalStorage="true"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme"
-        tools:replace="android:icon">
+        android:theme="@style/Theme.App.Starting"
+        tools:targetApi="n">
 
-        <activity
+        <!--<activity
             android:name=".activities.SplashActivity"
             android:launchMode="singleTop"
             android:noHistory="true"
             android:screenOrientation="portrait"
-            android:theme="@style/SplashTheme">
+            android:exported="true"
+            android:theme="@style/CandyBar.Theme.Splash">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -41,16 +40,18 @@
             <meta-data
                 android:name="android.app.shortcuts"
                 android:resource="@xml/shortcuts" />
-        </activity>
+        </activity>-->
 
         <activity
             android:name=".activities.MainActivity"
             android:launchMode="singleTop"
-            android:theme="@style/AppTheme"
+            android:exported="true"
+            android:theme="@style/Theme.App.Starting"
             android:configChanges="uiMode|orientation|keyboardHidden|screenSize">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -120,6 +121,12 @@
             <!-- Nine Launcher -->
             <intent-filter>
                 <action android:name="com.gridappsinc.launcher.theme.apk_action" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+			<!-- Moto Launcher -->
+            <intent-filter>
+                <action android:name="com.motorola.launcher.ACTION_ICON_PACK" />
+                <action android:name="com.motorola.launcher3.ICON_PACK_CHANGED" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
             <!-- Lawnchair -->
@@ -200,17 +207,36 @@
                 android:value="@color/muzei_color" />
         </provider>
 
-        <receiver
+        <!--
+            Uncomment the following code to enable Clock Widget.
+        -->
+        <!--<receiver
             android:name=".services.ClockWidget"
-            android:label="Clock Widget">
-
+            android:label="Clock Widget"
+            android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/analog_clock" />
-        </receiver>
+        </receiver>-->
+
+        <!--
+            Uncomment the following code to enable Kustom.
+            Also remove the `<action ... />`s that you don't want.
+        -->
+        <!--<provider
+            android:name="org.kustom.api.Provider"
+            android:authorities="${applicationId}.kustom.provider"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="org.kustom.provider.WIDGETS" />
+                <action android:name="org.kustom.provider.WALLPAPERS" />
+                <action android:name="org.kustom.provider.LOCKSCREENS" />
+                <action android:name="org.kustom.provider.KOMPONENTS" />
+            </intent-filter>
+        </provider>-->
 
         <!-- This is important -->
         <provider

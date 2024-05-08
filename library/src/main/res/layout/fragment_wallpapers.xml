@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    tools:ignore="MissingPrefix"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipe"
@@ -18,6 +16,7 @@
             android:paddingTop="@dimen/card_margin_top"
             android:paddingStart="@dimen/card_margin_left"
             android:paddingLeft="@dimen/card_margin_left"
+            android:paddingBottom="?attr/actionBarSize"
             android:clipToPadding="false" />
 
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
@@ -36,20 +35,17 @@
         android:visibility="gone"
         style="?android:attr/progressBarStyle" />
 
-    <com.rafakob.drawme.DrawMeButton
-        android:id="@+id/popup_bubble"
+    <TextView
+        android:id="@+id/search_result"
         android:layout_width="wrap_content"
-        android:layout_height="36dp"
-        android:layout_margin="@dimen/content_margin"
-        android:layout_gravity="center_horizontal"
-        android:drawablePadding="4dp"
-        android:text="@string/wallpaper_new_added"
-        android:textSize="12sp"
-        android:textAllCaps="false"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:layout_margin="16dp"
+        android:textSize="@dimen/text_content_title"
         android:visibility="gone"
-        app:dm_backColor="?attr/colorAccent"
-        app:dm_shapeRadiusHalfHeight="true"
-        fontPath="fonts/Font-Regular.ttf" />
+        android:textColor="?android:attr/textColorPrimary"
+        app:fontFamily="@font/medium" />
 
     <View
         android:id="@+id/shadow"

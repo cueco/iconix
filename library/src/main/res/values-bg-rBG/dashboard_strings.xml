@@ -62,7 +62,6 @@
     <string name="tap_intro_home_navigation">Навигационно чекмедже</string>
     <string name="tap_intro_home_navigation_desc">Докоснете тук или прекарайте пръст от левия ръб на екрана, за да отворите навигационното чекмедже</string>
     <string name="tap_intro_home_apply">Прилагане на пакета с икони</string>
-    <string name="tap_intro_home_apply_desc">Докоснете тук, за да приложите</string>
     <string name="tap_intro_icons_search">Търсене</string>
     <string name="tap_intro_icons_search_desc">Докоснете тук, за да търсите икона</string>
     <string name="tap_intro_request_select">Изберете липсващото приложение</string>
@@ -100,7 +99,6 @@
     <string name="apply_installed">Инсталиран Лаунчер</string>
     <string name="apply_supported">Поддържани Лаунчери</string>
     <string name="apply_manual">% 1 $ s Лаунчера не поддържа директно прилагане, но можете да приложите% 2 $ s ръчно от настройките на лаунчера.</string>
-    <string name="apply_manual_evie">Чукнете и задръжте на началния екран - Настройки - Пакет икони - изберете% s.</string>
     <string name="apply_launch_failed">Настройките не могат да се стартират</string>
     <string name="apply_launcher_not_installed">Лаунчера не е инсталиран.  Искате ли да отворите Google Play Store, за да го изтеглите и инсталирате?</string>
     <string name="apply_launcher_not_installable">Лаунчера не е инсталиран.  Моля, опитайте отново, след като инсталирате лаунчера.</string>
@@ -118,6 +116,7 @@
     <!-- Wallpapers -->
     <string name="wallpaper_apply">Приложи тапет</string>
     <string name="wallpaper_save_to_device">Запазване на тапет</string>
+    <!-- Presets -->
     <!-- Preferences -->
     <!-- Themes -->
     <!-- Permission -->
@@ -130,4 +129,5 @@
     <!-- DrawerToggle -->
     <string name="txt_open">Отвори</string>
     <string name="txt_close">Затвори</string>
+    <!-- Content descriptions for screen readers -->
 </resources>

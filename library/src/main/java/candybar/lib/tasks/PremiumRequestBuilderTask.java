@@ -5,7 +5,6 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -18,7 +17,6 @@ import com.danimahardhika.android.helpers.core.utils.LogUtil;
 import java.io.File;
 import java.lang.ref.WeakReference;
 import java.util.List;
-import java.util.concurrent.Executor;
 
 import candybar.lib.R;
 import candybar.lib.applications.CandyBarApplication;
@@ -26,6 +24,7 @@ import candybar.lib.databases.Database;
 import candybar.lib.fragments.dialog.IntentChooserFragment;
 import candybar.lib.helpers.DeviceHelper;
 import candybar.lib.items.Request;
+import candybar.lib.utils.AsyncTaskBase;
 import candybar.lib.utils.Extras;
 import candybar.lib.utils.listeners.RequestListener;
 
@@ -47,30 +46,21 @@ import candybar.lib.utils.listeners.RequestListener;
  * limitations under the License.
  */
 
-public class PremiumRequestBuilderTask extends AsyncTask<Void, Void, Boolean> {
+public class PremiumRequestBuilderTask extends AsyncTaskBase {
 
     private final WeakReference<Context> mContext;
     private final WeakReference<PremiumRequestBuilderCallback> mCallback;
     private String mEmailBody;
     private Extras.Error mError;
 
-    private PremiumRequestBuilderTask(Context context, PremiumRequestBuilderCallback callback) {
+    public PremiumRequestBuilderTask(Context context, PremiumRequestBuilderCallback callback) {
         mContext = new WeakReference<>(context);
         mCallback = new WeakReference<>(callback);
     }
 
-    public static AsyncTask start(@NonNull Context context, @Nullable PremiumRequestBuilderCallback callback) {
-        return start(context, callback, SERIAL_EXECUTOR);
-    }
-
-    public static AsyncTask start(@NonNull Context context, @Nullable PremiumRequestBuilderCallback callback,
-                                  @NonNull Executor executor) {
-        return new PremiumRequestBuilderTask(context, callback).executeOnExecutor(executor);
-    }
-
     @Override
-    protected Boolean doInBackground(Void... voids) {
-        while (!isCancelled()) {
+    protected boolean run() {
+        if (!isCancelled()) {
             try {
                 Thread.sleep(1);
                 if (CandyBarApplication.sRequestProperty == null) {
@@ -89,17 +79,17 @@ public class PremiumRequestBuilderTask extends AsyncTask<Void, Void, Boolean> {
                 List<Request> requests = Database.get(mContext.get()).getPremiumRequest(null);
 
                 for (int i = 0; i < requests.size(); i++) {
-                    stringBuilder.append("\n\n")
+                    stringBuilder.append("\r\n\r\n")
                             .append(requests.get(i).getName())
-                            .append("\n")
+                            .append("\r\n")
                             .append(requests.get(i).getActivity())
-                            .append("\n")
+                            .append("\r\n")
                             .append("https://play.google.com/store/apps/details?id=")
                             .append(requests.get(i).getPackageName())
-                            .append("\n")
+                            .append("\r\n")
                             .append("Order Id: ")
                             .append(requests.get(i).getOrderId())
-                            .append("\n")
+                            .append("\r\n")
                             .append("Product Id: ")
                             .append(requests.get(i).getProductId());
                 }
@@ -116,14 +106,13 @@ public class PremiumRequestBuilderTask extends AsyncTask<Void, Void, Boolean> {
     }
 
     @Override
-    protected void onPostExecute(Boolean aBoolean) {
-        super.onPostExecute(aBoolean);
+    protected void postRun(boolean ok) {
         if (mContext.get() == null) return;
         if (((AppCompatActivity) mContext.get()).isFinishing()) return;
 
-        if (aBoolean) {
+        if (ok) {
             try {
-                if (mCallback != null && mCallback.get() != null) {
+                if (mCallback.get() != null) {
                     mCallback.get().onFinished();
                 }
 
@@ -145,7 +134,7 @@ public class PremiumRequestBuilderTask extends AsyncTask<Void, Void, Boolean> {
     private Intent getIntent(ComponentName name, String emailBody) {
         try {
             Intent intent = new Intent(Intent.ACTION_SEND);
-            intent = addIntentExtra(intent, emailBody);
+            addIntentExtra(intent, emailBody);
             intent.setComponent(name);
             intent.addCategory(Intent.CATEGORY_LAUNCHER);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -153,7 +142,7 @@ public class PremiumRequestBuilderTask extends AsyncTask<Void, Void, Boolean> {
         } catch (IllegalArgumentException e) {
             try {
                 Intent intent = new Intent(Intent.ACTION_SEND);
-                intent = addIntentExtra(intent, emailBody);
+                addIntentExtra(intent, emailBody);
                 return intent;
             } catch (ActivityNotFoundException e1) {
                 LogUtil.e(Log.getStackTraceString(e1));
@@ -162,7 +151,7 @@ public class PremiumRequestBuilderTask extends AsyncTask<Void, Void, Boolean> {
         return null;
     }
 
-    private Intent addIntentExtra(@NonNull Intent intent, String emailBody) {
+    private void addIntentExtra(@NonNull Intent intent, String emailBody) {
         intent.setType("application/zip");
 
         if (CandyBarApplication.sZipPath != null) {
@@ -184,16 +173,12 @@ public class PremiumRequestBuilderTask extends AsyncTask<Void, Void, Boolean> {
         // Fallback to regular request email
         if (emailAddress.length() == 0)
             emailAddress = mContext.get().getResources().getString(R.string.regular_request_email);
-        // Fallback to dev_email
-        if (emailAddress.length() == 0)
-            emailAddress = mContext.get().getResources().getString(R.string.dev_email);
 
         intent.putExtra(Intent.EXTRA_EMAIL, new String[]{emailAddress});
         intent.putExtra(Intent.EXTRA_SUBJECT, subject);
         intent.putExtra(Intent.EXTRA_TEXT, emailBody);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK |
                 Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
-        return intent;
     }
 
     public interface PremiumRequestBuilderCallback {

@@ -8,8 +8,6 @@ import android.content.res.Configuration;
 import android.graphics.Point;
 import android.graphics.RectF;
 import android.net.Uri;
-import android.os.Build;
-import android.os.Environment;
 import android.webkit.URLUtil;
 
 import androidx.annotation.NonNull;
@@ -17,12 +15,13 @@ import androidx.annotation.Nullable;
 
 import com.danimahardhika.android.helpers.core.WindowHelper;
 
-import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
-import candybar.lib.R;
+import candybar.lib.applications.CandyBarApplication;
 import candybar.lib.items.ImageSize;
-import candybar.lib.items.Wallpaper;
-import candybar.lib.preferences.Preferences;
 
 /*
  * CandyBar - Material Dashboard
@@ -48,11 +47,9 @@ public class WallpaperHelper {
     public static final int CLOUD_WALLPAPERS = 1;
     public static final int EXTERNAL_APP = 2;
 
-    public static final String IMAGE_EXTENSION = ".jpeg";
-
     public static int getWallpaperType(@NonNull Context context) {
-        String url = context.getResources().getString(R.string.wallpaper_json);
-        if (URLUtil.isValidUrl(url)) {
+        String url = CandyBarApplication.getConfiguration().getConfigHandler().wallpaperJson(context);
+        if (url.startsWith("assets://") || URLUtil.isValidUrl(url)) {
             return CLOUD_WALLPAPERS;
         } else if (url.length() > 0) {
             return EXTERNAL_APP;
@@ -60,8 +57,33 @@ public class WallpaperHelper {
         return UNKNOWN;
     }
 
+    public static InputStream getJSONStream(@NonNull Context context) throws IOException {
+        return getStream(context, CandyBarApplication.getConfiguration().getConfigHandler().wallpaperJson(context));
+    }
+
+    /**
+     * This method adds support for `assets` protocol for loading file from `assets` directory
+     */
+    public static InputStream getStream(Context context, String urlStr) throws IOException {
+        InputStream stream = null;
+
+        if (urlStr.startsWith("assets://")) {
+            stream = context.getAssets().open(urlStr.replaceFirst("assets://", ""));
+        } else {
+            URL url = new URL(urlStr);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setConnectTimeout(15000);
+
+            if (connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
+                stream = connection.getInputStream();
+            }
+        }
+
+        return stream;
+    }
+
     public static void launchExternalApp(@NonNull Context context) {
-        String packageName = context.getResources().getString(R.string.wallpaper_json);
+        String packageName = CandyBarApplication.getConfiguration().getConfigHandler().wallpaperJson(context);
 
         PackageManager pm = context.getPackageManager();
         Intent intent = pm.getLaunchIntentForPackage(packageName);
@@ -82,42 +104,12 @@ public class WallpaperHelper {
         }
     }
 
-    public static File getDefaultWallpapersDirectory(@NonNull Context context) {
-        try {
-            if (Preferences.get(context).getWallsDirectory().length() == 0) {
-                return new File(Environment.getExternalStoragePublicDirectory(
-                        Environment.DIRECTORY_PICTURES) + "/" +
-                        context.getResources().getString(R.string.app_name));
-            }
-            return new File(Preferences.get(context).getWallsDirectory());
-        } catch (Exception e) {
-            return new File(context.getFilesDir().toString() + "/Pictures/" +
-                    context.getResources().getString(R.string.app_name));
-        }
-    }
-
     public static String getFormat(String mimeType) {
         if (mimeType == null) return "jpg";
-        switch (mimeType) {
-            case "image/jpeg":
-                return "jpg";
-            case "image/png":
-                return "png";
-            default:
-                return "jpg";
+        if ("image/png".equals(mimeType)) {
+            return "png";
         }
-    }
-
-    public static boolean isWallpaperSaved(@NonNull Context context, @NonNull Wallpaper wallpaper) {
-        String fileName = wallpaper.getName() + "." + getFormat(wallpaper.getMimeType());
-        File directory = WallpaperHelper.getDefaultWallpapersDirectory(context);
-        File target = new File(directory, fileName);
-
-        if (target.exists()) {
-            long size = target.length();
-            return size == wallpaper.getSize();
-        }
-        return false;
+        return "jpg";
     }
 
     public static ImageSize getTargetSize(@NonNull Context context) {
@@ -128,12 +120,6 @@ public class WallpaperHelper {
         if (context.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
             targetHeight = point.x;
             targetWidth = point.y;
-        }
-
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) {
-            int statusBarHeight = WindowHelper.getStatusBarHeight(context);
-            int navBarHeight = WindowHelper.getNavigationBarHeight(context);
-            targetHeight += (statusBarHeight + navBarHeight);
         }
 
         return new ImageSize(targetWidth, targetHeight);

@@ -7,11 +7,16 @@
 
     <!-- CONFIG: DEFAULT THEME -->
     <string name="default_theme">auto</string>
+    <bool name="material_you_by_default">true</bool>
 
     <!-- CONFIG: MUZEI -->
     <string name="muzei_art_source_name">CandyBar</string>
-    <string name="muzei_art_source_desc">Pleasing Wallpaper from CandyBar</string>
+    <string name="muzei_art_source_desc">Pleasing wallpapers from CandyBar</string>
     <color name="muzei_color">#0082B4</color>
+
+    <!-- CONFIG: KUSTOM -->
+    <string name="kustom_pack_title">@string/app_name</string>
+    <string name="kustom_pack_description">Cool Kustom presets</string>
 
     <!-- CONFIG: HOME -->
     <string name="home_title">CandyBar</string>
@@ -19,7 +24,8 @@
     <string name="home_image_style">card_landscape</string>
     <string name="home_description">
         <![CDATA[
-        CandyBar is an <b>Android Icon Pack Dashboard</b>. It has <i>many features</i>. Backed by the <u>community</u>. Get it <a href="https://github.com/zixpo/candybar">Here</a>.
+        CandyBar is an <b>Android Icon Pack Dashboard</b>. It has <i>many features</i>. Backed by the <u>community</u>.
+        Get it from <a href="https://github.com/zixpo/candybar">GitHub</a>.
         ]]>
     </string>
     <string name="rate_and_review_link">https://play.google.com/store/apps/details?id={{packageName}}</string>
@@ -34,7 +40,7 @@
     <bool name="enable_apply">true</bool>
 
     <!-- CONFIG: ICONS -->
-    <bool name="enable_icons_sort">true</bool>
+    <bool name="enable_icons_sort">false</bool>
     <bool name="show_icon_name">true</bool>
     <bool name="includes_adaptive_icons">true</bool>
 
@@ -44,7 +50,9 @@
     <integer name="icon_request_limit">1000</integer>
     <bool name="reset_icon_request_limit">true</bool>
     <bool name="json_check_before_request">false</bool>
+    <bool name="enable_ps_signature">false</bool>
     <bool name="enable_premium_request">true</bool>
+    <bool name="enable_restore_purchases">false</bool>
     <bool name="enable_non_mail_app_request">true</bool>
     <bool name="hide_missing_app_count">false</bool>
     <string name="regular_request_method">email</string>
@@ -53,11 +61,12 @@
     <string name="premium_request_email"></string>
     <string name="regular_request_email_subject"></string>
     <string name="premium_request_email_subject"></string>
-    <string name="regular_request_arctic_api_key"><!--f2a96282-31d0-42b7-b802-5487f2931113--></string>
-    <string name="premium_request_arctic_api_key"></string>
+    <string name="regular_request_pacific_api_key"><!--318db445-de03-4e24-bc4f-36b95cf16d22--></string>
+    <string name="premium_request_pacific_api_key"></string>
 
     <!-- CONFIG: CLOUD WALLPAPERS -->
     <string name="wallpaper_json">https://zixpo.github.io/candybar-sources/walls_alt.json</string>
+    <!--<string name="wallpaper_json">assets://wallpapers_offline.json</string>-->
     <bool name="enable_wallpaper_download">true</bool>
     <bool name="wallpaper_show_name_author">true</bool>
     <string name="wallpaper_grid_preview_style">square</string>
@@ -68,7 +77,8 @@
     <string name="about_title">CandyBar \nMaterial Dashboard</string>
     <string name="about_desc">
         <![CDATA[
-        CandyBar is an <b>Android Icon Pack Dashboard</b>. It has <i>many features</i>. Backed by the <u>community</u>. Get it <a href="https://github.com/zixpo/candybar">Here</a>.
+        CandyBar is an <b>Android Icon Pack Dashboard</b>. It has <i>many features</i>. Backed by the <u>community</u>.
+        Get it from <a href="https://github.com/zixpo/candybar">GitHub</a>.
         ]]>
     </string>
     <string-array name="about_social_links">
@@ -88,8 +98,11 @@
     <bool name="enable_donation">true</bool>
 
     <!-- CONFIG: MISC -->
-    <bool name="playstore_check_enabled">false</bool>
     <string name="config_json">https://zixpo.github.io/candybar-sources/candybar_config_alt.json</string>
-    <bool name="show_intro">false</bool>
+    <bool name="show_intro">true</bool>
+    <bool name="use_legacy_intro_colors">true</bool>
+
+    <bool name="quick_apply">true</bool>
+    <bool name="show_random_icon">true</bool>
 
 </resources>

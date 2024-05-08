@@ -1,12 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    tools:ignore="MissingPrefix"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:background="?attr/card_background">
+    android:background="?cb_cardBackground">
 
     <candybar.lib.utils.views.HeaderView
         android:id="@+id/image"
@@ -16,17 +14,15 @@
         app:heightRatio="7"
         app:widthRatio="16" />
 
-    <com.mikhaellopez.circularimageview.CircularImageView
+    <com.google.android.material.imageview.ShapeableImageView
         android:id="@+id/profile"
         android:layout_width="@dimen/about_profile"
         android:layout_height="@dimen/about_profile"
-        android:layout_marginTop="@dimen/about_profile_margin_top"
         android:layout_gravity="center_horizontal"
-        app:civ_border_color="?attr/card_background"
-        app:civ_border_width="@dimen/about_profile_border"
-        app:civ_shadow="true"
-        app:civ_shadow_radius="12"
-        app:civ_shadow_color="#22000000" />
+        android:layout_marginTop="@dimen/about_profile_margin_top"
+        android:background="?cb_cardBackground"
+        android:elevation="4dp"
+        app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
 
     <TextView
         android:layout_width="match_parent"
@@ -40,9 +36,9 @@
         android:text="@string/about_title"
         android:textColor="?android:attr/textColorPrimary"
         android:textSize="@dimen/text_title"
-        fontPath="fonts/Font-Medium.ttf" />
+        app:fontFamily="@font/medium" />
 
-    <org.sufficientlysecure.htmltextview.HtmlTextView
+    <TextView
         android:id="@+id/subtitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -55,7 +51,8 @@
         android:gravity="center_horizontal"
         android:textColor="?android:attr/textColorSecondary"
         android:textSize="@dimen/text_content"
-        fontPath="fonts/Font-Regular.ttf" />
+        app:fontFamily="@font/regular"
+        android:theme="@style/AccentChange" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerview"

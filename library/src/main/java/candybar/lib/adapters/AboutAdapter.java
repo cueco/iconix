@@ -1,11 +1,13 @@
 package candybar.lib.adapters;
 
+import static candybar.lib.helpers.DrawableHelper.getDrawableId;
+
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
-import android.os.Build;
+import android.text.method.LinkMovementMethod;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -18,6 +20,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.text.HtmlCompat;
 import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -30,9 +33,8 @@ import com.danimahardhika.android.helpers.core.ColorHelper;
 import com.danimahardhika.android.helpers.core.DrawableHelper;
 import com.danimahardhika.android.helpers.core.utils.LogUtil;
 import com.google.android.material.card.MaterialCardView;
-import com.mikhaellopez.circularimageview.CircularImageView;
 
-import org.sufficientlysecure.htmltextview.HtmlTextView;
+import java.util.HashMap;
 
 import candybar.lib.BuildConfig;
 import candybar.lib.R;
@@ -41,6 +43,7 @@ import candybar.lib.fragments.dialog.CreditsFragment;
 import candybar.lib.fragments.dialog.LicensesFragment;
 import candybar.lib.helpers.ConfigurationHelper;
 import candybar.lib.preferences.Preferences;
+import candybar.lib.utils.CandyBarGlideModule;
 
 /*
  * CandyBar - Material Dashboard
@@ -68,9 +71,9 @@ public class AboutAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
     private final boolean mShowExtraInfo;
 
-    boolean mShowContributors;
-    boolean mShowPrivacyPolicy;
-    final boolean mShowTerms;
+    private final boolean mShowContributors;
+    private final boolean mShowPrivacyPolicy;
+    private final boolean mShowTerms;
 
     private static final int TYPE_HEADER = 0;
     private static final int TYPE_EXTRA_INFO = 1;
@@ -99,8 +102,9 @@ public class AboutAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         }
     }
 
+    @NonNull
     @Override
-    public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         if (viewType == TYPE_HEADER) {
             View view = LayoutInflater.from(mContext).inflate(
                     R.layout.fragment_about_item_header, parent, false);
@@ -137,31 +141,35 @@ public class AboutAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                 headerViewHolder.image.setBackgroundColor(Color.parseColor(imageUri));
             } else {
                 if (!URLUtil.isValidUrl(imageUri)) {
-                    imageUri = "drawable://" + DrawableHelper.getResourceId(mContext, imageUri);
+                    imageUri = "drawable://" + getDrawableId(imageUri);
                 }
 
-                Glide.with(mContext)
-                        .load(imageUri)
-                        .transition(DrawableTransitionOptions.withCrossFade(300))
-                        .skipMemoryCache(true)
-                        .diskCacheStrategy(imageUri.contains("drawable://")
-                                ? DiskCacheStrategy.NONE
-                                : DiskCacheStrategy.RESOURCE)
-                        .into(headerViewHolder.image);
+                if (CandyBarGlideModule.isValidContextForGlide(mContext)) {
+                    Glide.with(mContext)
+                            .load(imageUri)
+                            .transition(DrawableTransitionOptions.withCrossFade(300))
+                            .skipMemoryCache(true)
+                            .diskCacheStrategy(imageUri.contains("drawable://")
+                                    ? DiskCacheStrategy.NONE
+                                    : DiskCacheStrategy.RESOURCE)
+                            .into(headerViewHolder.image);
+                }
             }
 
             String profileUri = mContext.getResources().getString(R.string.about_profile_image);
             if (!URLUtil.isValidUrl(profileUri)) {
-                profileUri = "drawable://" + DrawableHelper.getResourceId(mContext, profileUri);
+                profileUri = "drawable://" + getDrawableId(profileUri);
             }
 
-            Glide.with(mContext)
-                    .load(profileUri)
-                    .skipMemoryCache(true)
-                    .diskCacheStrategy(profileUri.contains("drawable://")
-                            ? DiskCacheStrategy.NONE
-                            : DiskCacheStrategy.RESOURCE)
-                    .into(headerViewHolder.profile);
+            if (CandyBarGlideModule.isValidContextForGlide(mContext)) {
+                Glide.with(mContext)
+                        .load(profileUri)
+                        .skipMemoryCache(true)
+                        .diskCacheStrategy(profileUri.contains("drawable://")
+                                ? DiskCacheStrategy.NONE
+                                : DiskCacheStrategy.RESOURCE)
+                        .into(headerViewHolder.profile);
+            }
         }
     }
 
@@ -185,13 +193,13 @@ public class AboutAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     private class HeaderViewHolder extends RecyclerView.ViewHolder {
 
         private final ImageView image;
-        private final CircularImageView profile;
+        private final ImageView profile;
 
         HeaderViewHolder(View itemView) {
             super(itemView);
             image = itemView.findViewById(R.id.image);
             profile = itemView.findViewById(R.id.profile);
-            HtmlTextView subtitle = itemView.findViewById(R.id.subtitle);
+            TextView subtitle = itemView.findViewById(R.id.subtitle);
             RecyclerView recyclerView = itemView.findViewById(R.id.recyclerview);
             recyclerView.setItemAnimator(new DefaultItemAnimator());
             recyclerView.setLayoutManager(new LinearLayoutManager(mContext, LinearLayoutManager.HORIZONTAL, true));
@@ -227,9 +235,7 @@ public class AboutAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                     int margin = mContext.getResources().getDimensionPixelSize(R.dimen.card_margin);
                     StaggeredGridLayoutManager.LayoutParams params = (StaggeredGridLayoutManager.LayoutParams) card.getLayoutParams();
                     params.setMargins(0, 0, margin, margin);
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
-                        params.setMarginEnd(margin);
-                    }
+                    params.setMarginEnd(margin);
                 }
             }
 
@@ -247,12 +253,12 @@ public class AboutAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
             if (!Preferences.get(mContext).isCardShadowEnabled()) {
                 if (card != null) card.setCardElevation(0);
-
-                profile.setShadowRadius(0f);
-                profile.setShadowColor(Color.TRANSPARENT);
+                profile.setElevation(0);
             }
 
-            subtitle.setHtml(mContext.getResources().getString(R.string.about_desc));
+            subtitle.setText(HtmlCompat.fromHtml(
+                    mContext.getResources().getString(R.string.about_desc), HtmlCompat.FROM_HTML_MODE_COMPACT));
+            subtitle.setMovementMethod(LinkMovementMethod.getInstance());
         }
     }
 
@@ -276,9 +282,7 @@ public class AboutAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                     int margin = mContext.getResources().getDimensionPixelSize(R.dimen.card_margin);
                     StaggeredGridLayoutManager.LayoutParams params = (StaggeredGridLayoutManager.LayoutParams) card.getLayoutParams();
                     params.setMargins(0, 0, margin, margin);
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
-                        params.setMarginEnd(margin);
-                    }
+                    params.setMarginEnd(margin);
                 }
             }
 
@@ -329,13 +333,37 @@ public class AboutAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         public void onClick(View view) {
             int id = view.getId();
             if (id == R.id.contributors_title) {
+                CandyBarApplication.getConfiguration().getAnalyticsHandler().logEvent(
+                        "click",
+                        new HashMap<String, Object>() {{
+                            put("section", "about");
+                            put("action", "open_dialog");
+                            put("item", "contributors");
+                        }}
+                );
                 CreditsFragment.showCreditsDialog(((AppCompatActivity) mContext).getSupportFragmentManager(),
                         CreditsFragment.TYPE_ICON_PACK_CONTRIBUTORS);
             } else if (id == R.id.privacy_policy_title) {
+                CandyBarApplication.getConfiguration().getAnalyticsHandler().logEvent(
+                        "click",
+                        new HashMap<String, Object>() {{
+                            put("section", "about");
+                            put("action", "open_dialog");
+                            put("item", "privacy_policy");
+                        }}
+                );
                 Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(mContext.getResources().getString(R.string.privacy_policy_link)));
                 intent.addFlags(Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT);
                 mContext.startActivity(intent);
             } else if (id == R.id.terms_title) {
+                CandyBarApplication.getConfiguration().getAnalyticsHandler().logEvent(
+                        "click",
+                        new HashMap<String, Object>() {{
+                            put("section", "about");
+                            put("action", "open_dialog");
+                            put("item", "terms_and_conditions");
+                        }}
+                );
                 Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(mContext.getResources().getString(R.string.terms_and_conditions_link)));
                 intent.addFlags(Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT);
                 mContext.startActivity(intent);
@@ -362,9 +390,7 @@ public class AboutAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                     int margin = mContext.getResources().getDimensionPixelSize(R.dimen.card_margin);
                     StaggeredGridLayoutManager.LayoutParams params = (StaggeredGridLayoutManager.LayoutParams) card.getLayoutParams();
                     params.setMargins(0, 0, margin, margin);
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
-                        params.setMarginEnd(margin);
-                    }
+                    params.setMarginEnd(margin);
                 }
             }
 
@@ -403,17 +429,41 @@ public class AboutAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         public void onClick(View view) {
             int id = view.getId();
             if (id == R.id.about_dashboard_licenses) {
+                CandyBarApplication.getConfiguration().getAnalyticsHandler().logEvent(
+                        "click",
+                        new HashMap<String, Object>() {{
+                            put("section", "about");
+                            put("action", "open_dialog");
+                            put("item", "licenses");
+                        }}
+                );
                 LicensesFragment.showLicensesDialog(((AppCompatActivity) mContext).getSupportFragmentManager());
                 return;
             }
 
             if (id == R.id.about_dashboard_contributors) {
+                CandyBarApplication.getConfiguration().getAnalyticsHandler().logEvent(
+                        "click",
+                        new HashMap<String, Object>() {{
+                            put("section", "about");
+                            put("action", "open_dialog");
+                            put("item", "contributors");
+                        }}
+                );
                 CreditsFragment.showCreditsDialog(((AppCompatActivity) mContext).getSupportFragmentManager(),
                         CreditsFragment.TYPE_DASHBOARD_CONTRIBUTORS);
                 return;
             }
 
             if (id == R.id.about_dashboard_translator) {
+                CandyBarApplication.getConfiguration().getAnalyticsHandler().logEvent(
+                        "click",
+                        new HashMap<String, Object>() {{
+                            put("section", "about");
+                            put("action", "open_dialog");
+                            put("item", "translators");
+                        }}
+                );
                 CreditsFragment.showCreditsDialog(((AppCompatActivity) mContext).getSupportFragmentManager(),
                         CreditsFragment.TYPE_DASHBOARD_TRANSLATOR);
                 return;
@@ -421,6 +471,14 @@ public class AboutAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
             Intent intent = null;
             if (id == R.id.about_dashboard_github) {
+                CandyBarApplication.getConfiguration().getAnalyticsHandler().logEvent(
+                        "click",
+                        new HashMap<String, Object>() {{
+                            put("section", "about");
+                            put("action", "open_dialog");
+                            put("item", "github");
+                        }}
+                );
                 intent = new Intent(Intent.ACTION_VIEW, Uri.parse(mContext
                         .getResources().getString(R.string.about_dashboard_github_url)));
             }

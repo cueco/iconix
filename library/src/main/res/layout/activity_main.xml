@@ -5,7 +5,8 @@
     android:id="@+id/drawer_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fitsSystemWindows="true"
+    android:fitsSystemWindows="false"
+    android:background="?cb_mainBackground"
     tools:openDrawer="start">
 
     <include
@@ -19,9 +20,11 @@
         android:layout_height="match_parent"
         android:layout_gravity="start"
         android:fitsSystemWindows="true"
-        android:background="?attr/card_background"
-        android:theme="@style/NavigationViewStyle"
+        android:background="?cb_cardBackground"
+        android:listDivider="?cb_dividerList"
+        style="@style/NavigationViewStyle"
         app:headerLayout="@layout/navigation_view_header"
-        app:menu="@menu/menu_navigation_view" />
+        app:menu="@menu/menu_navigation_view"
+        app:itemIconPadding="25dp" />
 
 </androidx.drawerlayout.widget.DrawerLayout>

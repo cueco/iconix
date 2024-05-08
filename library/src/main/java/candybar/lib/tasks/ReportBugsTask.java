@@ -1,13 +1,13 @@
 package candybar.lib.tasks;
 
+import static com.danimahardhika.android.helpers.core.FileHelper.getUriFromFile;
+
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.util.Log;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.afollestad.materialdialogs.MaterialDialog;
@@ -18,7 +18,6 @@ import java.io.File;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Executor;
 
 import candybar.lib.R;
 import candybar.lib.helpers.DeviceHelper;
@@ -26,8 +25,7 @@ import candybar.lib.helpers.ReportBugsHelper;
 import candybar.lib.helpers.RequestHelper;
 import candybar.lib.helpers.TypefaceHelper;
 import candybar.lib.preferences.Preferences;
-
-import static com.danimahardhika.android.helpers.core.FileHelper.getUriFromFile;
+import candybar.lib.utils.AsyncTaskBase;
 
 /*
  * CandyBar - Material Dashboard
@@ -47,54 +45,42 @@ import static com.danimahardhika.android.helpers.core.FileHelper.getUriFromFile;
  * limitations under the License.
  */
 
-public class ReportBugsTask extends AsyncTask<Void, Void, Boolean> {
+public class ReportBugsTask extends AsyncTaskBase {
 
     private final WeakReference<Context> mContext;
-    private String mDescription;
+    private final String mDescription;
     private String mZipPath = null;
     private StringBuilder mStringBuilder;
     private MaterialDialog mDialog;
 
-    private ReportBugsTask(Context context, String description) {
+    public ReportBugsTask(Context context, String description) {
         mContext = new WeakReference<>(context);
         mDescription = description;
     }
 
-    public static AsyncTask start(@NonNull Context context, @NonNull String description) {
-        return start(context, description, SERIAL_EXECUTOR);
-    }
-
-    public static AsyncTask start(@NonNull Context context, @NonNull String description, @NonNull Executor executor) {
-        return new ReportBugsTask(context, description).executeOnExecutor(executor);
-    }
-
     @Override
-    protected void onPreExecute() {
-        super.onPreExecute();
-        MaterialDialog.Builder builder = new MaterialDialog.Builder(mContext.get());
-        builder.typeface(
-                TypefaceHelper.getMedium(mContext.get()),
-                TypefaceHelper.getRegular(mContext.get()))
+    protected void preRun() {
+        mDialog = new MaterialDialog.Builder(mContext.get())
+                .typeface(TypefaceHelper.getMedium(mContext.get()), TypefaceHelper.getRegular(mContext.get()))
                 .content(R.string.report_bugs_building)
                 .progress(true, 0)
                 .progressIndeterminateStyle(true)
                 .cancelable(false)
-                .canceledOnTouchOutside(false);
-
-        mDialog = builder.build();
+                .canceledOnTouchOutside(false)
+                .build();
         mDialog.show();
         mStringBuilder = new StringBuilder();
     }
 
     @Override
-    protected Boolean doInBackground(Void... voids) {
-        while (!isCancelled()) {
+    protected boolean run() {
+        if (!isCancelled()) {
             try {
                 Thread.sleep(1);
                 List<String> files = new ArrayList<>();
 
                 mStringBuilder.append(DeviceHelper.getDeviceInfo(mContext.get()))
-                        .append("\n").append(mDescription).append("\n");
+                        .append("\r\n").append(mDescription).append("\r\n");
 
                 File brokenAppFilter = ReportBugsHelper.buildBrokenAppFilter(mContext.get());
                 if (brokenAppFilter != null) files.add(brokenAppFilter.toString());
@@ -121,17 +107,13 @@ public class ReportBugsTask extends AsyncTask<Void, Void, Boolean> {
     }
 
     @Override
-    protected void onPostExecute(Boolean aBoolean) {
-        super.onPostExecute(aBoolean);
+    protected void postRun(boolean ok) {
         if (mContext.get() == null) return;
         if (((AppCompatActivity) mContext.get()).isFinishing()) return;
 
         mDialog.dismiss();
-        if (aBoolean) {
+        if (ok) {
             String emailAddress = mContext.get().getString(R.string.regular_request_email);
-            // Fallback to dev_email
-            if (emailAddress.length() == 0)
-                emailAddress = mContext.get().getString(R.string.dev_email);
 
             final Intent intent = new Intent(Intent.ACTION_SEND);
             intent.setType("application/zip");

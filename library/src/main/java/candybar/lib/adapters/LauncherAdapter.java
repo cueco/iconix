@@ -1,5 +1,6 @@
 package candybar.lib.adapters;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -16,12 +17,15 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.bumptech.glide.load.resource.bitmap.BitmapTransitionOptions;
 
+import java.util.HashMap;
 import java.util.List;
 
 import candybar.lib.R;
+import candybar.lib.applications.CandyBarApplication;
 import candybar.lib.helpers.LauncherHelper;
 import candybar.lib.items.Icon;
 import candybar.lib.preferences.Preferences;
+import candybar.lib.utils.CandyBarGlideModule;
 
 /*
  * CandyBar - Material Dashboard
@@ -55,8 +59,9 @@ public class LauncherAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
         mLaunchers = launchers;
     }
 
+    @NonNull
     @Override
-    public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = null;
         if (viewType == TYPE_HEADER) {
             view = LayoutInflater.from(mContext).inflate(
@@ -81,13 +86,15 @@ public class LauncherAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
             ViewHolder contentViewHolder = ((ViewHolder) holder);
             contentViewHolder.name.setText(mLaunchers.get(position).getTitle());
 
-            Glide.with(mContext)
-                    .asBitmap()
-                    .load("drawable://" + mLaunchers.get(position).getRes())
-                    .transition(BitmapTransitionOptions.withCrossFade(300))
-                    .skipMemoryCache(true)
-                    .diskCacheStrategy(DiskCacheStrategy.NONE)
-                    .into(contentViewHolder.icon);
+            if (CandyBarGlideModule.isValidContextForGlide(mContext)) {
+                Glide.with(mContext)
+                        .asBitmap()
+                        .load("drawable://" + mLaunchers.get(position).getRes())
+                        .transition(BitmapTransitionOptions.withCrossFade(300))
+                        .skipMemoryCache(true)
+                        .diskCacheStrategy(DiskCacheStrategy.NONE)
+                        .into(contentViewHolder.icon);
+            }
         }
     }
 
@@ -109,7 +116,6 @@ public class LauncherAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
 
         private TextView name;
         private ImageView icon;
-        private LinearLayout container;
 
         ViewHolder(View itemView, int viewType) {
             super(itemView);
@@ -118,16 +124,17 @@ public class LauncherAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
             } else if (viewType == TYPE_CONTENT) {
                 icon = itemView.findViewById(R.id.icon);
                 name = itemView.findViewById(R.id.name);
-                container = itemView.findViewById(R.id.container);
+                LinearLayout container = itemView.findViewById(R.id.container);
 
                 container.setOnClickListener(this);
             }
         }
 
+        @SuppressLint("StringFormatInvalid")
         @Override
         public void onClick(View view) {
             int id = view.getId();
-            int position = getAdapterPosition();
+            int position = getBindingAdapterPosition();
             if (id == R.id.container) {
                 if (position < 0 || position > getItemCount()) return;
                 try {
@@ -135,8 +142,8 @@ public class LauncherAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
                             mLaunchers.get(position).getPackageName(),
                             mLaunchers.get(position).getTitle());
                 } catch (Exception e) {
-                    Toast.makeText(mContext, String.format(mContext.getResources().getString(
-                            R.string.apply_launch_failed), mLaunchers.get(position).getTitle()),
+                    Toast.makeText(mContext, mContext.getResources().getString(
+                            R.string.apply_launch_failed, mLaunchers.get(position).getTitle()),
                             Toast.LENGTH_LONG).show();
                 }
 

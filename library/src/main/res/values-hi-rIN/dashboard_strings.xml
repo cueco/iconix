@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="splash_screen_title">शुरुआती स्क्रीन का शीर्षक</string>
     <!-- Navigation View -->
     <string name="navigation_view_home">घर</string>
     <string name="navigation_view_apply">लागू करें</string>
@@ -37,6 +38,7 @@
     <string name="search_noresult">कोई परिणाम नहीं मिला के लिए \"%s\"</string>
     <string name="search_faqs">प्रश्न या उत्तर</string>
     <string name="search_icon">आइकॉन का नाम</string>
+    <string name="search_wallpapers">वॉलपेपर का नाम</string>
     <!-- Update -->
     <string name="update_available">अपडेट उपलब्ध है</string>
     <string name="no_update_available">आप नवीनतम संस्करण का उपयोग कर रहे हैं।</string>
@@ -59,7 +61,6 @@
     <string name="tap_intro_home_navigation">नेविगेशन ड्रॉवर</string>
     <string name="tap_intro_home_navigation_desc">नेविगेशन ड्रॉवर खोलने के लिए स्क्रीन के बायीं किनारे से यहां टैप करें या स्वाइप करें</string>
     <string name="tap_intro_home_apply">आइकन पैक लागू करें</string>
-    <string name="tap_intro_home_apply_desc">लागू करने के लिए यहां टैप करें %s</string>
     <string name="tap_intro_icons_search">खोज</string>
     <string name="tap_intro_icons_search_desc">आइकन खोज के लिए यहां टैप करें</string>
     <string name="tap_intro_request_select">छुटे हुए ऐप का चयन करें</string>
@@ -97,7 +98,6 @@
     <!-- Apply -->
     <string name="apply_installed">स्थापित लांचर</string>
     <string name="apply_supported">समर्थित लौन्चेर्स</string>
-    <string name="apply_manual_evie">होमस्क्रीन पर टैप करके रखें - सेटिंग्स - आइकॉन पैक चयन करें %s</string>
     <string name="apply_launch_failed">सेटिंग %s लांच करने में असमर्थ</string>
     <string name="apply_launcher_not_installed">%s  इंस्टॉल नहीं है क्या आप खोलना चाहते हैं
 डाउनलोड और इंस्टॉल करने के लिए गूगल प्ले  स्टोर?</string>
@@ -118,8 +118,6 @@
     <string name="request_building">अनुरोध कर रहा है …</string>
     <string name="request_build_failed">आइकॉन निवदेन करने में असमर्थ</string>
     <string name="request_appfilter_failed">appfilter.xml को पढ़ने में असमर्थ</string>
-    <string name="request_requested">कृपया अपना निवदेन फिर से जाँच ले.
-क्युकी आप उन एप्प का पुनः निवदेन कर रहे है जिहें आप पहले निवेदित कर चुके.</string>
     <string name="request_email_client">उस ईमेल क्लाइंट को चुनें, जिससे आप आइकन निवेदन भेजने के लिए उपयोग करना चाहते हैं</string>
     <string name="request_limit">आप केवल नियमित अनुरोध के साथ %d अनुरोध (अनुरोधों) करने में सक्षम हैं।</string>
     <string name="request_used">आपने %d आइकन (ओं) का अनुरोध किया है</string>
@@ -155,6 +153,7 @@
     <string name="connection_failed">सर्वर से डाटा लेने में असमर्थ</string>
     <string name="wallpaper_apply">वॉलपेपर लागु करें</string>
     <string name="wallpaper_save_to_device">वॉलपेपर सहेजे</string>
+    <!-- Presets -->
     <!-- Preferences -->
     <string name="pref_data_header">डेटा और कैश</string>
     <string name="pref_data_cache">कैश हटायें</string>
@@ -187,6 +186,9 @@
     <string name="pref_others_reset_tutorial">ट्यूटोरियल रीसेट करें</string>
     <string name="pref_others_reset_tutorial_reset">ट्यूटोरियल रीसेट करें</string>
     <!-- Themes -->
+    <string name="theme_name_auto">स्वचालित</string>
+    <string name="theme_name_light">प्रकाश</string>
+    <string name="theme_name_dark">अंधेरा</string>
     <!-- Permission -->
     <string name="permission_storage_denied">वॉलपेपर को सहेजने के लिए संग्रहण अनुमति की आवश्यकता है</string>
     <!-- Intent -->
@@ -200,6 +202,8 @@
     <string name="intent_email_not_supported_message">एक असमर्थित ईमेल क्लाइंट चयनित, कृपया एक अन्य ईमेल क्लाइंट का चयन करें</string>
     <!-- About -->
     <string name="about_contributors_title">योगदानकर्ता</string>
+    <string name="about_privacy_policy_title">गोपनीयता नीति</string>
+    <string name="about_terms_and_conditions_title">नियम और शर्तें</string>
     <!-- Report Bugs -->
     <string name="report_bugs_desc">आप किस प्रकार की समस्या की रिपोर्ट करना चाहते हैं, इसके बारे में विवरण दें</string>
     <string name="report_bugs_desc_hint">विवरण</string>
@@ -223,4 +227,6 @@
     <!-- DrawerToggle -->
     <string name="txt_open">खोलें</string>
     <string name="txt_close">बंद करे</string>
+    <string name="txt_new">नया</string>
+    <!-- Content descriptions for screen readers -->
 </resources>

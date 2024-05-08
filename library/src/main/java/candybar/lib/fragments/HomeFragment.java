@@ -1,11 +1,14 @@
 package candybar.lib.fragments;
 
+import android.annotation.SuppressLint;
 import android.content.res.Configuration;
+import android.content.res.Resources;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.DefaultItemAnimator;
@@ -13,7 +16,9 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.StaggeredGridLayoutManager;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 
 import candybar.lib.R;
 import candybar.lib.activities.CandyBarMainActivity;
@@ -55,25 +60,34 @@ public class HomeFragment extends Fragment implements HomeListener {
         View view = inflater.inflate(R.layout.fragment_home, container, false);
         mRecyclerView = view.findViewById(R.id.recyclerview);
 
-        if (!Preferences.get(getActivity()).isToolbarShadowEnabled()) {
+        if (!Preferences.get(requireActivity()).isToolbarShadowEnabled()) {
             View shadow = view.findViewById(R.id.shadow);
             if (shadow != null) shadow.setVisibility(View.GONE);
         }
+
+        // ViewHelper.addBottomPadding(mRecyclerView);
+
         return view;
     }
 
     @Override
-    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        CandyBarApplication.getConfiguration().getAnalyticsHandler().logEvent(
+                "view",
+                new HashMap<String, Object>() {{ put("section", "home"); }}
+        );
+
         mManager = new StaggeredGridLayoutManager(
-                getActivity().getResources().getInteger(R.integer.home_column_count),
+                requireActivity().getResources().getInteger(R.integer.home_column_count),
                 StaggeredGridLayoutManager.VERTICAL);
         mRecyclerView.setHasFixedSize(true);
         mRecyclerView.setItemAnimator(new DefaultItemAnimator());
         mRecyclerView.setLayoutManager(mManager);
 
         if (CandyBarApplication.getConfiguration().getHomeGrid() == CandyBarApplication.GridStyle.FLAT) {
-            int padding = getActivity().getResources().getDimensionPixelSize(R.dimen.card_margin);
+            int padding = requireActivity().getResources().getDimensionPixelSize(R.dimen.card_margin);
             mRecyclerView.setPadding(padding, padding, 0, 0);
         }
 
@@ -81,7 +95,7 @@ public class HomeFragment extends Fragment implements HomeListener {
     }
 
     @Override
-    public void onConfigurationChanged(Configuration newConfig) {
+    public void onConfigurationChanged(@NonNull Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
         HomeAdapter adapter = (HomeAdapter) mRecyclerView.getAdapter();
         if (adapter != null) adapter.setOrientation(newConfig.orientation);
@@ -104,15 +118,15 @@ public class HomeFragment extends Fragment implements HomeListener {
             }
 
             int dimensionsIndex = adapter.getDimensionsIndex();
-            if (dimensionsIndex < 0) {
+            if (dimensionsIndex < 0 && requireActivity().getResources().getBoolean(R.bool.show_random_icon)) {
                 adapter.addNewContent(home);
             }
             return;
         }
 
-        RecyclerView.Adapter adapter = mRecyclerView.getAdapter();
+        RecyclerView.Adapter<?> adapter = mRecyclerView.getAdapter();
         if (adapter.getItemCount() > 8) {
-            //Probably the original adapter already modified
+            // Probably the original adapter already modified
             adapter.notifyDataSetChanged();
             return;
         }
@@ -128,31 +142,33 @@ public class HomeFragment extends Fragment implements HomeListener {
 
     @Override
     public void onHomeIntroInit() {
-        if (getActivity().getResources().getBoolean(R.bool.show_intro)) {
-            TapIntroHelper.showHomeIntros(getActivity(),
+        if (requireActivity().getResources().getBoolean(R.bool.show_intro)) {
+            TapIntroHelper.showHomeIntros(requireActivity(),
                     mRecyclerView, mManager,
-                    ((HomeAdapter) mRecyclerView.getAdapter()).getApplyIndex());
+                    ((HomeAdapter) Objects.requireNonNull(mRecyclerView.getAdapter())).getApplyIndex());
         }
     }
 
+    @SuppressLint("StringFormatInvalid")
     private void initHome() {
         List<Home> homes = new ArrayList<>();
+        final Resources resources = requireActivity().getResources();
 
-        if (getActivity().getResources().getBoolean(R.bool.enable_apply)) {
+        if (resources.getBoolean(R.bool.enable_apply)) {
             homes.add(new Home(
                     R.drawable.ic_toolbar_apply_launcher,
-                    String.format(getActivity().getResources().getString(R.string.home_apply_icon_pack),
-                            getActivity().getResources().getString(R.string.app_name)),
+                    resources.getString(R.string.home_apply_icon_pack,
+                            resources.getString(R.string.app_name)),
                     "",
                     Home.Type.APPLY,
                     false));
         }
 
-        if (getActivity().getResources().getBoolean(R.bool.enable_donation)) {
+        if (resources.getBoolean(R.bool.enable_donation)) {
             homes.add(new Home(
                     R.drawable.ic_toolbar_donate,
-                    getActivity().getResources().getString(R.string.home_donate),
-                    getActivity().getResources().getString(R.string.home_donate_desc),
+                    resources.getString(R.string.home_donate),
+                    resources.getString(R.string.home_donate_desc),
                     Home.Type.DONATE,
                     false));
         }
@@ -162,24 +178,34 @@ public class HomeFragment extends Fragment implements HomeListener {
                 CandyBarApplication.getConfiguration().isAutomaticIconsCountEnabled() ?
                         String.valueOf(CandyBarMainActivity.sIconsCount) :
                         String.valueOf(CandyBarApplication.getConfiguration().getCustomIconsCount()),
-                getActivity().getResources().getString(R.string.home_icons),
+                resources.getString(R.string.home_icons),
                 Home.Type.ICONS,
                 true));
 
-        if (CandyBarMainActivity.sHomeIcon != null) {
+        if (CandyBarMainActivity.sHomeIcon != null && requireActivity().getResources().getBoolean(R.bool.show_random_icon)) {
             homes.add(CandyBarMainActivity.sHomeIcon);
         }
 
-        mRecyclerView.setAdapter(new HomeAdapter(getActivity(), homes,
-                getActivity().getResources().getConfiguration().orientation));
+        mRecyclerView.setAdapter(new HomeAdapter(requireActivity(), homes,
+                resources.getConfiguration().orientation));
+
+        // By default `onHomeIntroInit` is called by the ChangelogFragment,
+        // so that the intro starts after the changelog dialog is dismissed
+        // But when intros are reset using the settings, there's no changelog
+        // that would call `onHomeIntroInit`, so in that case we are calling
+        // it from here
+        if (Preferences.get(requireActivity()).isIntroReset()) {
+            onHomeIntroInit();
+            Preferences.get(requireActivity()).setIntroReset(false);
+        }
     }
 
     public void resetWallpapersCount() {
-        if (WallpaperHelper.getWallpaperType(getActivity()) == WallpaperHelper.CLOUD_WALLPAPERS) {
+        if (WallpaperHelper.getWallpaperType(requireActivity()) == WallpaperHelper.CLOUD_WALLPAPERS) {
             if (mRecyclerView == null) return;
             if (mRecyclerView.getAdapter() == null) return;
 
-            RecyclerView.Adapter adapter = mRecyclerView.getAdapter();
+            RecyclerView.Adapter<?> adapter = mRecyclerView.getAdapter();
             if (adapter.getItemCount() > 8) {
                 //Probably the original adapter already modified
                 adapter.notifyDataSetChanged();

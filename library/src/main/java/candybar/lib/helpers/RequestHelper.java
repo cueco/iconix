@@ -1,5 +1,8 @@
 package candybar.lib.helpers;
 
+import static candybar.lib.helpers.DrawableHelper.getPackageIcon;
+import static candybar.lib.helpers.DrawableHelper.toBitmap;
+
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
@@ -37,6 +40,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
+import java.util.regex.Matcher;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -47,9 +52,6 @@ import candybar.lib.databases.Database;
 import candybar.lib.items.Request;
 import candybar.lib.preferences.Preferences;
 import candybar.lib.utils.listeners.RequestListener;
-
-import static candybar.lib.helpers.DrawableHelper.getReqIcon;
-import static candybar.lib.helpers.DrawableHelper.getRightIcon;
 
 /*
  * CandyBar - Material Dashboard
@@ -79,7 +81,7 @@ public class RequestHelper {
 
     public static String getGeneratedZipName(@NonNull String baseName) {
         return baseName.substring(0, baseName.lastIndexOf(".")) + "_" + TimeHelper.getDateTime(
-                new SimpleDateFormat("dd_MM_yyyy_HH_mm_ss", Locale.getDefault())) + ".zip";
+                new SimpleDateFormat("dd_MM_yyyy_HH_mm_ss", Locale.ENGLISH)) + ".zip";
     }
 
     public static String fixNameForRequest(String name) {
@@ -132,7 +134,7 @@ public class RequestHelper {
         return null;
     }
 
-    public static String buildJsonForArctic(@NonNull List<Request> requests) {
+    public static String buildJsonForPacific(@NonNull List<Request> requests) {
         StringBuilder sb = new StringBuilder();
         boolean isFirst = true;
 
@@ -158,16 +160,18 @@ public class RequestHelper {
         sb.append("{ \"projectUID\": \"ENTER UID\",");
         sb.append("\"icons\" : [");
         for (Request request : requests) {
-            Bitmap appBitmap = getRightIcon(getReqIcon(context, request.getActivity()));
+            Bitmap appBitmap = toBitmap(getPackageIcon(context, request.getActivity()));
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            assert appBitmap != null;
             appBitmap.compress(Bitmap.CompressFormat.PNG, 100, baos);
             String base64Icon = Base64.encodeToString(baos.toByteArray(), Base64.DEFAULT);
 
             if (!isFirst) sb.append(",\n");
-            sb.append("\"name\": \"" + request.getName() + "\"," +
-                    "\"packageName\": \"" + request.getPackageName() + "\"," +
-                    "\"imageStr\": \"" + base64Icon + "\"," +
-                    "\"activities\": [\"" + request.getActivity() + "\"]");
+            sb
+                    .append("\"name\": \"").append(request.getName()).append("\",")
+                    .append("\"packageName\": \"").append(request.getPackageName()).append("\",")
+                    .append("\"imageStr\": \"").append(base64Icon).append("\",")
+                    .append("\"activities\": [\"").append(request.getActivity()).append("\"]");
             isFirst = false;
         }
         sb.append("]}");
@@ -175,51 +179,55 @@ public class RequestHelper {
         return sb.toString();
     }
 
-    public static String getRegularArcticApiKey(Context context) {
-        String arcticApiKey = context.getResources().getString(R.string.regular_request_arctic_api_key);
-        // Fallback to arctic_manager_api_key
-        if (arcticApiKey.length() == 0)
-            arcticApiKey = context.getResources().getString(R.string.arctic_manager_api_key);
-
-        return arcticApiKey;
+    public static String getRegularPacificApiKey(Context context) {
+        return context.getResources().getString(R.string.regular_request_pacific_api_key);
     }
 
-    public static boolean isRegularArcticEnabled(Context context) {
+    public static boolean isRegularPacificEnabled(Context context) {
         return context.getResources().getString(R.string.regular_request_method).length() > 0
-                ? context.getResources().getString(R.string.regular_request_method).contentEquals("arctic")
-                // Use fallback method to check if arctic is enabled
-                : getRegularArcticApiKey(context).length() > 0;
+                ? context.getResources().getString(R.string.regular_request_method).contentEquals("pacific")
+                // Use fallback method to check if pacific is enabled
+                : getRegularPacificApiKey(context).length() > 0;
     }
 
-    public static String getPremiumArcticApiKey(Context context) {
-        String arcticApiKey = context.getResources().getString(R.string.premium_request_arctic_api_key);
+    public static String getPremiumPacificApiKey(Context context) {
+        String pacificApiKey = context.getResources().getString(R.string.premium_request_pacific_api_key);
         // Fallback to regular request's api key
-        if (arcticApiKey.length() == 0) arcticApiKey = getRegularArcticApiKey(context);
+        if (pacificApiKey.length() == 0) pacificApiKey = getRegularPacificApiKey(context);
 
-        return arcticApiKey;
+        return pacificApiKey;
     }
 
-    public static boolean isPremiumArcticEnabled(Context context) {
+    public static boolean isPremiumPacificEnabled(Context context) {
         return context.getResources().getString(R.string.premium_request_method).length() > 0
-                ? context.getResources().getString(R.string.premium_request_method).contentEquals("arctic")
+                ? context.getResources().getString(R.string.premium_request_method).contentEquals("pacific")
                 // Fallback to regular request's method
                 : context.getResources().getString(R.string.regular_request_method).length() > 0
-                ? context.getResources().getString(R.string.regular_request_method).contentEquals("arctic")
-                // Use fallback method to check if arctic is enabled
-                : getRegularArcticApiKey(context).length() > 0;
+                ? context.getResources().getString(R.string.regular_request_method).contentEquals("pacific")
+                // Use fallback method to check if pacific is enabled
+                : getRegularPacificApiKey(context).length() > 0;
     }
 
-    public static String sendArcticRequest(List<Request> requests, List<String> iconFiles, File directory, String apiKey) {
+    public static String sendPacificRequest(List<Request> requests, List<String> iconFiles, File directory, String apiKey) {
+        CandyBarApplication.getConfiguration().getAnalyticsHandler().logEvent(
+                "click",
+                new HashMap<String, Object>() {{
+                    put("section", "icon_request");
+                    put("action", "submit");
+                    put("item", "pacific");
+                    put("number_of_icons", requests.size());
+                }}
+        );
         okhttp3.RequestBody okRequestBody = new okhttp3.MultipartBody.Builder()
                 .setType(okhttp3.MultipartBody.FORM)
-                .addFormDataPart("apps", buildJsonForArctic(requests))
+                .addFormDataPart("apps", buildJsonForPacific(requests))
                 .addFormDataPart("archive", "icons.zip", okhttp3.RequestBody.create(
-                        getZipFile(iconFiles, directory.toString(), "icons.zip"),
+                        Objects.requireNonNull(getZipFile(iconFiles, directory.toString(), "icons.zip")),
                         okhttp3.MediaType.parse("application/zip")))
                 .build();
 
         okhttp3.Request okRequest = new okhttp3.Request.Builder()
-                .url("https://arcticmanager.com/v1/request")
+                .url("https://pacificmanager.app/v1/request")
                 .addHeader("TokenID", apiKey)
                 .addHeader("Accept", "application/json")
                 .addHeader("User-Agent", "afollestad/icon-request")
@@ -232,14 +240,60 @@ public class RequestHelper {
             okhttp3.Response response = okHttpClient.newCall(okRequest).execute();
             boolean success = response.code() > 199 && response.code() < 300;
             if (!success) {
-                JSONObject responseJson = new JSONObject(response.body().string());
+                return "Unknown error.";
+            }
+            JSONObject responseJson = new JSONObject(Objects.requireNonNull(response.body()).string());
+            if(responseJson.getString("status").equals("error")) {
                 return responseJson.getString("error");
             }
-        } catch (IOException | JSONException ignoredException) {
-            LogUtil.d("ARCTIC_MANAGER: Error");
+        } catch (IOException | JSONException e) {
+            LogUtil.e("PACIFIC_MANAGER: Error");
+            LogUtil.e(Log.getStackTraceString(e));
             return "";
         }
         return null;
+    }
+
+    public static boolean isRegularCustomEnabled(Context context) {
+        return context.getResources().getString(R.string.regular_request_method).length() > 0
+                && context.getResources().getString(R.string.regular_request_method).contentEquals("custom");
+    }
+
+    public static boolean isPremiumCustomEnabled(Context context) {
+        return (context.getResources().getString(R.string.premium_request_method).length() > 0
+                && context.getResources().getString(R.string.premium_request_method).contentEquals("custom"))
+                ||
+                // Fallback to regular request's method
+                (context.getResources().getString(R.string.regular_request_method).length() > 0
+                && context.getResources().getString(R.string.regular_request_method).contentEquals("custom"));
+    }
+
+    public static String sendCustomRequest(List<Request> requests, boolean isPremium) {
+        CandyBarApplication.getConfiguration().getAnalyticsHandler().logEvent(
+                "click",
+                new HashMap<String, Object>() {{
+                    put("section", "icon_request");
+                    put("action", "submit");
+                    put("item", "custom");
+                    put("type", isPremium ? "premium" : "regular");
+                    put("number_of_icons", requests.size());
+                }}
+        );
+        String errorMessage;
+        CandyBarApplication.Configuration.IconRequestHandler iconRequestHandler = CandyBarApplication.getConfiguration().getIconRequestHandler();
+        if (iconRequestHandler != null) {
+            errorMessage = iconRequestHandler.submit(requests, isPremium);
+        } else {
+            errorMessage = "Custom icon request failed: No handler configured";
+            LogUtil.e(errorMessage);
+            return errorMessage;
+        }
+        if (errorMessage == "") {
+            return null;
+        } else {
+            LogUtil.e(errorMessage);
+            return errorMessage;
+        }
     }
 
     public static File getZipFile(List<String> files, String filepath, String filename) {
@@ -349,22 +403,11 @@ public class RequestHelper {
         return requests;
     }
 
-    public static void showAlreadyRequestedDialog(@NonNull Context context) {
-        new MaterialDialog.Builder(context)
-                .typeface(
-                        TypefaceHelper.getMedium(context),
-                        TypefaceHelper.getRegular(context))
-                .title(R.string.request_title)
-                .content(R.string.request_requested)
-                .positiveText(R.string.close)
-                .show();
-    }
-
     public static void showIconRequestLimitDialog(@NonNull Context context) {
         boolean reset = context.getResources().getBoolean(R.bool.reset_icon_request_limit);
         int limit = context.getResources().getInteger(R.integer.icon_request_limit);
-        String message = String.format(context.getResources().getString(R.string.request_limit), limit);
-        message += " " + String.format(context.getResources().getString(R.string.request_used),
+        String message = context.getResources().getString(R.string.request_limit, limit);
+        message += " " + context.getResources().getString(R.string.request_used,
                 Preferences.get(context).getRegularRequestUsed());
 
         if (Preferences.get(context).isPremiumRequestEnabled())
@@ -373,9 +416,7 @@ public class RequestHelper {
         if (reset)
             message += "\n\n" + context.getResources().getString(R.string.request_limit_reset);
         new MaterialDialog.Builder(context)
-                .typeface(
-                        TypefaceHelper.getMedium(context),
-                        TypefaceHelper.getRegular(context))
+                .typeface(TypefaceHelper.getMedium(context), TypefaceHelper.getRegular(context))
                 .title(R.string.request_title)
                 .content(message)
                 .positiveText(R.string.close)
@@ -384,9 +425,7 @@ public class RequestHelper {
 
     public static void showPremiumRequestRequired(@NonNull Context context) {
         new MaterialDialog.Builder(context)
-                .typeface(
-                        TypefaceHelper.getMedium(context),
-                        TypefaceHelper.getRegular(context))
+                .typeface(TypefaceHelper.getMedium(context), TypefaceHelper.getRegular(context))
                 .title(R.string.request_title)
                 .content(R.string.premium_request_required)
                 .positiveText(R.string.close)
@@ -394,14 +433,11 @@ public class RequestHelper {
     }
 
     public static void showPremiumRequestLimitDialog(@NonNull Context context, int selected) {
-        String message = String.format(context.getResources().getString(R.string.premium_request_limit),
+        String message = context.getResources().getString(R.string.premium_request_limit,
                 Preferences.get(context).getPremiumRequestCount());
-        message += " " + String.format(context.getResources().getString(R.string.premium_request_limit1),
-                selected);
+        message += " " + context.getResources().getString(R.string.premium_request_limit1, selected);
         new MaterialDialog.Builder(context)
-                .typeface(
-                        TypefaceHelper.getMedium(context),
-                        TypefaceHelper.getRegular(context))
+                .typeface(TypefaceHelper.getMedium(context), TypefaceHelper.getRegular(context))
                 .title(R.string.premium_request)
                 .content(message)
                 .positiveText(R.string.close)
@@ -409,13 +445,11 @@ public class RequestHelper {
     }
 
     public static void showPremiumRequestStillAvailable(@NonNull Context context) {
-        String message = String.format(context.getResources().getString(
-                R.string.premium_request_already_purchased),
+        String message = context.getResources().getString(
+                R.string.premium_request_already_purchased,
                 Preferences.get(context).getPremiumRequestCount());
         new MaterialDialog.Builder(context)
-                .typeface(
-                        TypefaceHelper.getMedium(context),
-                        TypefaceHelper.getRegular(context))
+                .typeface(TypefaceHelper.getMedium(context), TypefaceHelper.getRegular(context))
                 .title(R.string.premium_request)
                 .content(message)
                 .positiveText(R.string.close)
@@ -426,9 +460,7 @@ public class RequestHelper {
         boolean isReady = Preferences.get(context).isConnectedToNetwork();
         if (!isReady) {
             new MaterialDialog.Builder(context)
-                    .typeface(
-                            TypefaceHelper.getMedium(context),
-                            TypefaceHelper.getRegular(context))
+                    .typeface(TypefaceHelper.getMedium(context), TypefaceHelper.getRegular(context))
                     .title(R.string.premium_request)
                     .content(R.string.premium_request_no_internet)
                     .positiveText(R.string.close)
@@ -439,9 +471,7 @@ public class RequestHelper {
 
     public static void showPremiumRequestConsumeFailed(@NonNull Context context) {
         new MaterialDialog.Builder(context)
-                .typeface(
-                        TypefaceHelper.getMedium(context),
-                        TypefaceHelper.getRegular(context))
+                .typeface(TypefaceHelper.getMedium(context), TypefaceHelper.getRegular(context))
                 .title(R.string.premium_request)
                 .content(R.string.premium_request_consume_failed)
                 .positiveText(R.string.close)
@@ -450,9 +480,7 @@ public class RequestHelper {
 
     public static void showPremiumRequestExist(@NonNull Context context) {
         new MaterialDialog.Builder(context)
-                .typeface(
-                        TypefaceHelper.getMedium(context),
-                        TypefaceHelper.getRegular(context))
+                .typeface(TypefaceHelper.getMedium(context), TypefaceHelper.getRegular(context))
                 .title(R.string.premium_request)
                 .content(R.string.premium_request_exist)
                 .positiveText(R.string.close)
@@ -503,14 +531,21 @@ public class RequestHelper {
         listener.onPiracyAppChecked(isPiracyAppInstalled);
     }
 
+    public static String reverseString(String input) {
+        byte[] bytes = input.getBytes();
+        byte[] output = new byte[bytes.length];
+        for (int i = 0; i < bytes.length; i++) output[i] = bytes[bytes.length - i - 1];
+        return new String(output);
+    }
+
     public enum XmlType {
         APPFILTER(RequestHelper.APPFILTER, "<resources>", "</resources>"),
         APPMAP(RequestHelper.APPMAP, "<appmap>", "</appmap>"),
         THEME_RESOURCES(RequestHelper.THEME_RESOURCES, "<Theme version=\"1\">", "</Theme>");
 
-        private String fileName;
-        private String header;
-        private String footer;
+        private final String fileName;
+        private final String header;
+        private final String footer;
 
         XmlType(String fileName, String header, String footer) {
             this.fileName = fileName;
@@ -536,7 +571,7 @@ public class RequestHelper {
                     return "\t<!-- " + request.getName() + " -->" +
                             "\n" +
                             "\t" + context.getString(R.string.appfilter_item)
-                            .replaceAll("\\{\\{component\\}\\}", request.getActivity())
+                            .replaceAll("\\{\\{component\\}\\}", Matcher.quoteReplacement(request.getActivity()))
                             .replaceAll("\\{\\{drawable\\}\\}", fixNameForRequest(request.getName())) +
                             "\n\n";
                 case APPMAP:
@@ -565,8 +600,8 @@ public class RequestHelper {
         ACTIVITY("component", "drawable"),
         DRAWABLE("drawable", "component");
 
-        private String key;
-        private String value;
+        private final String key;
+        private final String value;
 
         Key(String key, String value) {
             this.key = key;

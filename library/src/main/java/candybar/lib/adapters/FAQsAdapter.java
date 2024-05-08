@@ -1,19 +1,23 @@
 package candybar.lib.adapters;
 
 import android.content.Context;
+import android.text.method.LinkMovementMethod;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.text.HtmlCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 
 import candybar.lib.R;
+import candybar.lib.applications.CandyBarApplication;
 import candybar.lib.items.FAQs;
 import candybar.lib.preferences.Preferences;
 
@@ -48,12 +52,12 @@ public class FAQsAdapter extends RecyclerView.Adapter<FAQsAdapter.ViewHolder> {
     public FAQsAdapter(@NonNull Context context, @NonNull List<FAQs> faqs) {
         mContext = context;
         mFAQs = faqs;
-        mFAQsAll = new ArrayList<>();
-        mFAQsAll.addAll(mFAQs);
+        mFAQsAll = new ArrayList<>(mFAQs);
     }
 
+    @NonNull
     @Override
-    public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = null;
         if (viewType == TYPE_CONTENT) {
             view = LayoutInflater.from(parent.getContext()).inflate(
@@ -66,7 +70,7 @@ public class FAQsAdapter extends RecyclerView.Adapter<FAQsAdapter.ViewHolder> {
     }
 
     @Override
-    public void onViewRecycled(ViewHolder holder) {
+    public void onViewRecycled(@NonNull ViewHolder holder) {
         super.onViewRecycled(holder);
         if (holder.holderId == TYPE_CONTENT) {
             holder.divider.setVisibility(View.VISIBLE);
@@ -76,8 +80,10 @@ public class FAQsAdapter extends RecyclerView.Adapter<FAQsAdapter.ViewHolder> {
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
         if (holder.holderId == TYPE_CONTENT) {
-            holder.question.setText(mFAQs.get(position).getQuestion());
-            holder.answer.setText(mFAQs.get(position).getAnswer());
+            holder.question.setText(HtmlCompat.fromHtml(mFAQs.get(position).getQuestion(), HtmlCompat.FROM_HTML_MODE_COMPACT));
+            holder.answer.setText(HtmlCompat.fromHtml(mFAQs.get(position).getAnswer(), HtmlCompat.FROM_HTML_MODE_COMPACT));
+            holder.question.setMovementMethod(LinkMovementMethod.getInstance());
+            holder.answer.setMovementMethod(LinkMovementMethod.getInstance());
 
             if (position == (mFAQs.size() - 1)) {
                 holder.divider.setVisibility(View.GONE);
@@ -135,6 +141,28 @@ public class FAQsAdapter extends RecyclerView.Adapter<FAQsAdapter.ViewHolder> {
                     mFAQs.add(faq);
                 }
             }
+        }
+        if (getFaqsCount() == 0) {
+            CandyBarApplication.getConfiguration().getAnalyticsHandler().logEvent(
+                    "type",
+                    new HashMap<String, Object>() {{
+                        put("section", "faq");
+                        put("action", "search");
+                        put("found", "no");
+                        put("query", query);
+                    }}
+            );
+        } else {
+            CandyBarApplication.getConfiguration().getAnalyticsHandler().logEvent(
+                    "type",
+                    new HashMap<String, Object>() {{
+                        put("section", "faq");
+                        put("action", "search");
+                        put("found", "yes");
+                        put("query", query);
+                        put("num_results", getFaqsCount());
+                    }}
+            );
         }
         notifyDataSetChanged();
     }

@@ -1,3 +1,189 @@
+[moertel]: https://github.com/moertel
+
+[Donnnno]: https://github.com/Donnnno
+
+# v3.19.0
+- Upgraded to new SplashScreen API
+- Updated AGP and dependencies
+- Added Material You themes (thanks to [@GitGitro](https://github.com/GitGitro))
+- Fixed issue with icon category exclusion from icon search
+- New social icons in About section. Credit goes to [@Donnnno][Donnnno]
+- Added support for re-requesting icons. Credit goes to [@moertel][moertel]
+- Updated translations
+
+# v3.18.4
+- Added new launchers
+- Added option to exclude categories from search
+
+# v3.18.3
+- Removed duplicated code, fixes issue with icons not loading when searching icons
+
+# v3.18.2
+- Fix icon search not loading when `show_icon_name` is set to `false`
+
+# v3.18.0
+- Improved initial load speed. Now loads 30000 icons under 5 seconds.
+- Fixed memory leak in icon search, uses less memory.
+- Fixed unable to download offline wallpapers.
+
+# v3.17.5
+- Fix the issue related to "Restore purchases"
+- Probably fix the issue with icon search when navigating back
+- Minor fixes
+
+# v3.17.4
+- Ability to load wallpapers from `assets`
+- Removed MultiDex (thanks to [@connyduck](https://github.com/connyduck))
+- Added support for visibly disabled requests (thanks to [@moertel][moertel])
+- Updated launchers (thanks to [@Donnnno][Donnnno])
+- Added support for rendering `VectorDrawable`
+- Updated translations
+
+# v3.17.3
+- Add support for formatting FAQs
+- Fixed home intro not showing when tutorials are reset using the `Setting` sections
+
+# v3.7.2
+- Added ZenUI to launcher. It was deleted by mistake.
+
+# v3.17.1
+- Updated Gradle, AGP and dependencies
+
+# v3.17.0
+- Configuration for filtering out apps in requests. Refer to [this issue](https://github.com/zixpo/candybar/issues/123) for more details
+- Configuration for enabling analytics in the app
+- Now supports dynamic configuration for wallpaper and config JSON
+- Option to override TapIntro colors
+- OneUI launcher is now available in apply section
+- Fixed clock widget click not working correctly on Android 12
+- Removed very old launchers
+- Fixed error in appfilter.xml when an activity name contains `$` (dollar sign)
+- Added option to enable/disable the "Restore purchases" option
+- Updated translations
+
+Big thanks to [@moertel][moertel] and [@Donnnno][Donnnno] for their contribution.
+
+# v3.16.2
+- Fixed app crash
+
+# v3.16.1
+- Fixed app crash when `show_icon_name` is set to `false`
+
+# v3.16.0
+- Updated AGP, dependencies and translations
+- Migrated to Billing Library v5.1
+- Fixed icon requests failing when using Gmail
+- Fixed keyboard not showing in search
+- Added better fast scroller in icons section
+- Bumped Min SDK to 21
+
+Thanks to [@moertel][moertel], [@randomvector](//randomvector)
+, [@one4studioicons](//one4studioicons)
+for helping with the issues.
+
+# v3.15.0
+- Remove Play Store check feature as play store no longer leaves any signature.
+- Targets Android 13
+- Updated Android Gradle Plugin and Gradle
+- Updated translations
+- Fixed icons not rendering in the request section
+
+# v3.14.2
+- Fixed wrong icon getting selected in icon requests
+- Updated translations
+
+# v3.14.1
+- Fixed icon request taking forever to build.
+- Updated translations.
+
+# v3.14.0
+- Updated Android Gradle Plugin
+- Rebuilds only current premium request
+- Ability to render layered drawables
+- Fixed an issue with the request fragment where the first missing app was not showing up when
+  premium request was disabled
+  (Thanks to [@moertel][moertel] for the research)
+- Updated dependencies
+- Now targets Android S (API 32)
+- Hide old launchers in apply section (I will permanently remove them later)
+- Updated to work with Pacific Manager (Thanks to [@justinkruit](https://github.com/justinkruit))
+- Added support for custom icon request mode which you can configure programmatically using Java (
+  Thanks to [@moertel][moertel])
+
+# v3.13.2
+- Updated Android Gradle Plugin
+- Analog clock is now resizable
+- Added Lawnchair 12
+- Fixed `Broken drawables` in report bugs
+- Added support for using donation links
+
+# v3.13.1
+- Fix SSL error with Arctic Manager
+- Added Norwegian language. Thanks to Allan Nordhøy ([@comradekingu](https://github.com/comradekingu)) for the contribution.
+
+# v3.13.0
+- Added support for previewing Kustom presets
+- Fixed `Broken drawable` in bug reporter
+
+# v3.12.1
+- Use English date in icon requests' ZIP name
+- Fix issue with launcher apply
+- Upgraded to OneSignal 4
+
+# v3.12.0
+- Update Gradle and AGP
+- Added Hyperion launcher
+- Use CRLF in email related strings
+- Added support to search wallpapers
+
+# v3.11.7
+- Fixed crash
+- Added basic Kustom support
+- Improved themes
+
+# v3.11.6
+- Fixed icon search not working
+
+# v3.11.5
+- Fixed icon bookmarking not working when `show_icon_name` is set to false
+
+# v3.11.4
+- Added support for bookmarking icons
+
+# v3.11.1
+- Fixed link not working in markup
+
+# v3.11.0
+- Internal code refactorings
+- Removed deprecated stuffs
+- Now uses Material Components
+
+# v3.10.1
+- Fixed in-app billings
+- Fixed icon request limit not resetting when license checker is enabled
+
+# v3.10.0
+- Updated Gradle wrapper and plugin
+- Migrated away from JCenter
+- Added Hungarian language
+- Now launches clock app when tapped on the clock widget
+- Updated to In-app Billing v3
+- Added `System default` icon shape
+- Fixed icon shape of the random icon viewer
+- Improved wallpaper sorting
+- Update FAQs
+
+# v3.9.2
+- Add Ukrainian language
+- Updated translations
+- Updated Gradle wrapper and plugin
+- Now hides home title if it's empty
+- Upgrade storage system to support Android 11
+- Now targets Android 11
+
+# v3.9.1
+- Fix Gmail not showing up when sending icon request in Android 11
+
 # v3.9.0
 - Fix new wallpaper count badge
 - Add Indonesian language
@@ -82,7 +268,6 @@
 - Added BlackBerry Launcher.
 - Added Flick Launcher.
 
-
 # v3.5.0-beta.6.6
 - Fix wallpaper download issue with Android 10.
 - Show Loader while icon are being loaded.
@@ -108,7 +293,6 @@
 # v3.5.0-beta.6.3
 - Now you can exclude launchers.
 - Fixed Many Small Bugs.
-
 
 # v3.5.0-beta.6.1
 - Added support for Adaptive Icons.

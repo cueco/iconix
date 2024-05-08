@@ -1,11 +1,10 @@
 package candybar.lib.tasks;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.BitmapFactory;
-import android.os.AsyncTask;
 import android.util.Log;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
@@ -13,18 +12,15 @@ import androidx.fragment.app.FragmentManager;
 import com.danimahardhika.android.helpers.core.utils.LogUtil;
 
 import java.lang.ref.WeakReference;
-import java.util.Collections;
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.Executor;
 
 import candybar.lib.R;
 import candybar.lib.activities.CandyBarMainActivity;
-import candybar.lib.applications.CandyBarApplication;
 import candybar.lib.helpers.IconsHelper;
 import candybar.lib.items.Home;
 import candybar.lib.items.Icon;
-import candybar.lib.utils.AlphanumComparator;
+import candybar.lib.utils.AsyncTaskBase;
 import candybar.lib.utils.listeners.HomeListener;
 
 /*
@@ -45,70 +41,23 @@ import candybar.lib.utils.listeners.HomeListener;
  * limitations under the License.
  */
 
-public class IconsLoaderTask extends AsyncTask<Void, Void, Boolean> {
+public class IconsLoaderTask extends AsyncTaskBase {
 
     private final WeakReference<Context> mContext;
     private Home mHome;
 
-    private IconsLoaderTask(Context context) {
+    public IconsLoaderTask(Context context) {
         mContext = new WeakReference<>(context);
     }
 
-    public static AsyncTask start(@NonNull Context context) {
-        return start(context, SERIAL_EXECUTOR);
-    }
-
-    public static AsyncTask start(@NonNull Context context, @NonNull Executor executor) {
-        return new IconsLoaderTask(context).executeOnExecutor(executor);
-    }
-
     @Override
-    protected Boolean doInBackground(Void... voids) {
-        while (!isCancelled()) {
+    @SuppressLint("StringFormatInvalid")
+    protected boolean run() {
+        if (!isCancelled()) {
             try {
                 Thread.sleep(1);
-                if (CandyBarMainActivity.sSections == null) {
-                    CandyBarMainActivity.sSections = IconsHelper.getIconsList(mContext.get());
 
-                    for (int i = 0; i < CandyBarMainActivity.sSections.size(); i++) {
-                        List<Icon> icons = CandyBarMainActivity.sSections.get(i).getIcons();
-
-                        if (mContext.get().getResources().getBoolean(R.bool.show_icon_name) ||
-                                mContext.get().getResources().getBoolean(R.bool.enable_icon_name_replacer)) {
-                            for (Icon icon : icons) {
-                                boolean replacer = mContext.get().getResources().getBoolean(
-                                        R.bool.enable_icon_name_replacer);
-                                String name;
-                                if ((icon.getCustomName() != null) && (!icon.getCustomName().contentEquals(""))) {
-                                    name = icon.getCustomName();
-                                } else {
-                                    name = IconsHelper.replaceName(mContext.get(), replacer, icon.getTitle());
-                                }
-                                icon.setTitle(name);
-                            }
-                        }
-
-                        if (mContext.get().getResources().getBoolean(R.bool.enable_icons_sort) ||
-                                mContext.get().getResources().getBoolean(R.bool.enable_icon_name_replacer)) {
-                            Collections.sort(icons, new AlphanumComparator() {
-                                @Override
-                                public int compare(Object o1, Object o2) {
-                                    String s1 = ((Icon) o1).getTitle();
-                                    String s2 = ((Icon) o2).getTitle();
-                                    return super.compare(s1, s2);
-                                }
-                            });
-
-                            CandyBarMainActivity.sSections.get(i).setIcons(icons);
-                        }
-                    }
-
-                    if (CandyBarApplication.getConfiguration().isShowTabAllIcons()) {
-                        List<Icon> icons = IconsHelper.getTabAllIcons();
-                        CandyBarMainActivity.sSections.add(new Icon(
-                                CandyBarApplication.getConfiguration().getTabAllIconsTitle(), icons));
-                    }
-                }
+                IconsHelper.loadIcons(mContext.get(), true);
 
                 if (CandyBarMainActivity.sHomeIcon != null) return true;
 
@@ -123,20 +72,10 @@ public class IconsLoaderTask extends AsyncTask<Void, Void, Boolean> {
                 BitmapFactory.decodeResource(mContext.get().getResources(),
                         icon.getRes(), options);
 
-                if (!mContext.get().getResources().getBoolean(R.bool.show_icon_name)) {
-                    String name;
-                    if ((icon.getCustomName() != null) && (!icon.getCustomName().contentEquals(""))) {
-                        name = icon.getCustomName();
-                    } else {
-                        name = IconsHelper.replaceName(mContext.get(), true, icon.getTitle());
-                    }
-                    icon.setTitle(name);
-                }
-
                 String iconDimension = "";
 
                 if (options.outWidth > 0 && options.outHeight > 0) {
-                    iconDimension = String.format(mContext.get().getResources().getString(R.string.home_icon_dimension),
+                    iconDimension = mContext.get().getResources().getString(R.string.home_icon_dimension,
                             options.outWidth + " x " + options.outHeight);
                 }
 
@@ -157,9 +96,8 @@ public class IconsLoaderTask extends AsyncTask<Void, Void, Boolean> {
     }
 
     @Override
-    protected void onPostExecute(Boolean aBoolean) {
-        super.onPostExecute(aBoolean);
-        if (aBoolean) {
+    protected void postRun(boolean ok) {
+        if (ok) {
             if (mHome == null) return;
             if (mContext.get() == null) return;
 

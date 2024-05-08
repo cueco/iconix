@@ -8,10 +8,15 @@ import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Rect;
 import android.graphics.drawable.AdaptiveIconDrawable;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.LayerDrawable;
+import android.graphics.drawable.VectorDrawable;
 import android.os.Build;
+import android.util.Base64;
 import android.util.DisplayMetrics;
 import android.util.Log;
 
@@ -22,7 +27,11 @@ import androidx.core.content.res.ResourcesCompat;
 
 import com.danimahardhika.android.helpers.core.utils.LogUtil;
 
+import java.io.ByteArrayOutputStream;
+import java.lang.reflect.Field;
+
 import candybar.lib.R;
+import candybar.lib.applications.CandyBarApplication;
 import sarsamurmu.adaptiveicon.AdaptiveIcon;
 
 /*
@@ -54,7 +63,7 @@ public class DrawableHelper {
     }
 
     @Nullable
-    public static Drawable getReqIcon(@NonNull Context context, String componentNameStr) {
+    public static Drawable getPackageIcon(@NonNull Context context, String componentNameStr) {
         PackageManager packageManager = context.getPackageManager();
 
         int slashIndex = componentNameStr.indexOf("/");
@@ -78,37 +87,70 @@ public class DrawableHelper {
             ApplicationInfo appInfo = packageManager.getApplicationInfo(packageName, PackageManager.GET_META_DATA);
             Resources appResources = packageManager.getResourcesForApplication(appInfo);
 
-            int density = DisplayMetrics.DENSITY_XHIGH;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-                density = DisplayMetrics.DENSITY_XXHIGH;
-            }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-                density = DisplayMetrics.DENSITY_XXXHIGH;
-            }
             Drawable drawable = ResourcesCompat.getDrawableForDensity(appResources, appInfo.icon,
-                    density, null);
+                    DisplayMetrics.DENSITY_XXXHIGH, null);
 
             if (drawable != null) return drawable;
-            LogUtil.e("DrawableHelper - drawable is null");
         } catch (Exception | OutOfMemoryError e) {
             LogUtil.e(Log.getStackTraceString(e));
         }
+
+        LogUtil.e("DrawableHelper - drawable is null");
+
         return null;
     }
 
-    public static Bitmap getRightIcon(Drawable drawable) {
-        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.O) {
-            return ((BitmapDrawable) drawable).getBitmap();
-        } else {
-            if (drawable instanceof BitmapDrawable) {
-                return ((BitmapDrawable) drawable).getBitmap();
-            } else if (drawable instanceof AdaptiveIconDrawable) {
-                return new AdaptiveIcon()
-                        .setDrawable((AdaptiveIconDrawable) drawable)
-                        .render();
+    public static Bitmap toBitmap(Drawable drawable) {
+        // Using square shape for more detail (area) in icon image
+        return toBitmap(drawable, AdaptiveIcon.PATH_SQUARE);
+    }
+
+    public static Bitmap toBitmap(Drawable drawable, int shape) {
+        if (drawable instanceof BitmapDrawable) return ((BitmapDrawable) drawable).getBitmap();
+        if (drawable instanceof LayerDrawable || drawable instanceof VectorDrawable) {
+            final boolean isVector = drawable instanceof VectorDrawable;
+            final int width = isVector ? 256 : drawable.getIntrinsicWidth();
+            final int height = isVector ? 256 : drawable.getIntrinsicHeight();
+            final Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+            drawable.setBounds(0, 0, width, height);
+            drawable.draw(new Canvas(bitmap));
+            return bitmap;
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && drawable instanceof AdaptiveIconDrawable) {
+            if (shape == -1) {
+                // System default icon shape
+                Bitmap bitmap = Bitmap.createBitmap(256, 256, Bitmap.Config.ARGB_8888);
+                Canvas canvas = new Canvas(bitmap);
+                drawable.setBounds(new Rect(0, 0, 256, 256));
+                drawable.draw(canvas);
+                return bitmap;
             }
+
+            return new AdaptiveIcon()
+                    .setDrawable((AdaptiveIconDrawable) drawable)
+                    .setPath(shape)
+                    .render();
         }
         return null;
     }
-}
 
+    public static String getReqIconBase64(@NonNull Drawable drawable) {
+        Bitmap appBitmap = toBitmap(drawable);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        assert appBitmap != null;
+        appBitmap.compress(Bitmap.CompressFormat.PNG, 100, baos);
+        String base64Icon = Base64.encodeToString(baos.toByteArray(), Base64.DEFAULT);
+        return base64Icon.trim();
+    }
+
+    public static int getDrawableId(String resource) {
+        try {
+            Field idField = CandyBarApplication.mDrawableClass.getDeclaredField(resource);
+            return idField.getInt(null);
+        } catch (Exception e) {
+            LogUtil.e("Reflect resource not found with name - " + resource);
+            return -1;
+        }
+    }
+}

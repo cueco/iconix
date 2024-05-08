@@ -2,18 +2,17 @@
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    tools:ignore="MissingPrefix"
     android:id="@+id/card"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginRight="@dimen/content_padding"
     android:layout_marginEnd="@dimen/content_padding"
     android:layout_marginBottom="@dimen/content_padding"
-    app:cardBackgroundColor="?attr/card_background"
+    app:cardBackgroundColor="?cb_cardBackground"
     app:cardElevation="@dimen/card_elevation"
     app:cardUseCompatPadding="@bool/card_use_compat_padding"
     app:cardCornerRadius="@dimen/card_corner_radius"
-    app:strokeColor="?card_stroke">
+    app:strokeColor="?cb_cardStroke">
 
     <LinearLayout
         android:id="@+id/container"
@@ -45,7 +44,7 @@
                 android:layout_height="wrap_content"
                 android:textColor="?android:attr/textColorPrimary"
                 android:textSize="@dimen/text_content_title"
-                fontPath="fonts/Font-Medium.ttf" />
+                app:fontFamily="@font/medium" />
 
             <TextView
                 android:id="@+id/requested"
@@ -54,11 +53,20 @@
                 android:text="@string/request_not_requested"
                 android:textColor="?android:attr/textColorSecondary"
                 android:textSize="@dimen/text_content"
-                fontPath="fonts/Font-Regular.ttf" />
+                app:fontFamily="@font/regular" />
 
         </LinearLayout>
 
-        <androidx.appcompat.widget.AppCompatCheckBox
+        <ImageView
+            android:id="@+id/requestedInfoIcon"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:src="@drawable/ic_drawer_about"
+            android:scaleX="0.8"
+            android:scaleY="0.8"
+            tools:ignore="ContentDescription" />
+
+        <CheckBox
             android:id="@+id/checkbox"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

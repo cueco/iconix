@@ -58,7 +58,6 @@
     <string name="tap_intro_home_navigation">Navigation drawer</string>
     <string name="tap_intro_home_navigation_desc">Tap here or swipe from left edge of the screen to open navigation drawer</string>
     <string name="tap_intro_home_apply">Apply icon pack</string>
-    <string name="tap_intro_home_apply_desc">Tap here to apply %s</string>
     <string name="tap_intro_icons_search">தேடல்</string>
     <string name="tap_intro_icons_search_desc">Tap here to search an icon</string>
     <string name="tap_intro_request_select">Select missed app</string>
@@ -98,7 +97,6 @@
     <string name="apply_installed">நிறுவப்பட்ட லான்ச்சர்</string>
     <string name="apply_supported">ஆதரிக்கப்பட்ட லான்ச்சர்கள்</string>
     <string name="apply_manual">%1$s doesn\'t support direct apply, you can apply %2$s manually from the launcher settings.</string>
-    <string name="apply_manual_evie">ஹோம்ஸ்கிரீனைத் தட்டிப் பிடிக்கவும் - அமைப்புகள் - ஐகான் பேக் - தேர்வு செய்யவும் %s.</string>
     <string name="apply_launch_failed">தொடங்க முடியவில்லை %s அமைப்புகள்</string>
     <string name="apply_launcher_not_installed">%s is not installed. Do you want to open
         Google Play Store to download and install it?</string>
@@ -118,8 +116,6 @@
     <string name="request_building">கட்டிட கோரிக்கை …</string>
     <string name="request_build_failed">ஐகான் கோரிக்கையை உருவாக்க முடியவில்லை</string>
     <string name="request_appfilter_failed">appfilter.xml படிக்க முடியவில்லை</string>
-    <string name="request_requested">உங்கள் கோரிக்கையை மீண்டும் சரிபார்க்கவும்.
-         ஏனெனில் ஏற்கனவே கோரப்பட்ட பயன்பாட்டைக் கோர முயற்சிக்கிறீர்கள்.</string>
     <string name="request_email_client">ஐகான் கோரிக்கையை அனுப்ப நீங்கள் பயன்படுத்த விரும்பும் மின்னஞ்சல் கிளையண்டைத் தேர்வுசெய்க</string>
     <string name="request_limit">You are only able to make %d request(s) with regular request.</string>
     <string name="request_used">நீங்கள் கோரியுள்ளீர்கள் %d ஐகான்(கள்).</string>
@@ -156,6 +152,7 @@
     <string name="connection_failed">சேவையகத்திலிருந்து தரவைப் பெற முடியவில்லை</string>
     <string name="wallpaper_apply">Apply wallpaper</string>
     <string name="wallpaper_save_to_device">Save wallpaper</string>
+    <!-- Presets -->
     <!-- Preferences -->
     <string name="pref_data_header">தகவல்கள் &amp; தற்காலிக சேமிப்பு</string>
     <string name="pref_data_cache">அலி தற்காலிக சேமிப்பு</string>
@@ -221,4 +218,5 @@
     <!-- DrawerToggle -->
     <string name="txt_open">திற</string>
     <string name="txt_close">மூடு</string>
+    <!-- Content descriptions for screen readers -->
 </resources>

@@ -5,11 +5,11 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.LinearLayout;
+import android.widget.RadioButton;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.AppCompatRadioButton;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 
@@ -39,10 +39,10 @@ import candybar.lib.items.Theme;
  */
 
 public class ThemeAdapter extends BaseAdapter {
-    private Context mContext;
-    private List<Theme> mThemes;
-    private int mSelectedIndex;
-    private List<ViewHolder> mHolders;
+    private final Context mContext;
+    private final List<Theme> mThemes;
+    private final int mSelectedIndex;
+    private final List<ViewHolder> mHolders;
 
     public ThemeAdapter(@NonNull Context context, @NonNull List<Theme> themes, int selectedIndex) {
         mContext = context;
@@ -72,7 +72,7 @@ public class ThemeAdapter extends BaseAdapter {
 
         if (view == null) {
             view = View.inflate(mContext, R.layout.fragment_inapp_dialog_item_list, null);
-            holder = new ThemeAdapter.ViewHolder(view);
+            holder = new ViewHolder(view);
             view.setTag(holder);
             mHolders.add(holder);
         } else {
@@ -102,8 +102,8 @@ public class ThemeAdapter extends BaseAdapter {
         return view;
     }
 
-    private class ViewHolder {
-        private final AppCompatRadioButton radio;
+    private static class ViewHolder {
+        private final RadioButton radio;
         private final TextView name;
         private final LinearLayout container;
 

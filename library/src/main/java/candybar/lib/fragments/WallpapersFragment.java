@@ -1,43 +1,46 @@
 package candybar.lib.fragments;
 
+import static candybar.lib.helpers.ViewHelper.setFastScrollColor;
+
+import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.PorterDuff;
-import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.content.ContextCompat;
 import androidx.core.view.ViewCompat;
 import androidx.fragment.app.Fragment;
-import androidx.interpolator.view.animation.LinearOutSlowInInterpolator;
 import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.bumptech.glide.Glide;
-import com.danimahardhika.android.helpers.animation.AnimationHelper;
 import com.danimahardhika.android.helpers.core.ColorHelper;
-import com.danimahardhika.android.helpers.core.DrawableHelper;
-import com.danimahardhika.android.helpers.core.ListHelper;
+import com.danimahardhika.android.helpers.core.SoftKeyboardHelper;
 import com.danimahardhika.android.helpers.core.ViewHelper;
 import com.danimahardhika.android.helpers.core.utils.LogUtil;
 import com.pluscubed.recyclerfastscroll.RecyclerFastScroller;
-import com.rafakob.drawme.DrawMeButton;
 
 import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import candybar.lib.R;
@@ -46,11 +49,11 @@ import candybar.lib.applications.CandyBarApplication;
 import candybar.lib.databases.Database;
 import candybar.lib.helpers.JsonHelper;
 import candybar.lib.helpers.TapIntroHelper;
+import candybar.lib.helpers.WallpaperHelper;
 import candybar.lib.items.Wallpaper;
 import candybar.lib.preferences.Preferences;
+import candybar.lib.utils.AsyncTaskBase;
 import candybar.lib.utils.listeners.WallpapersListener;
-
-import static candybar.lib.helpers.ViewHelper.setFastScrollColor;
 
 /*
  * CandyBar - Material Dashboard
@@ -75,10 +78,10 @@ public class WallpapersFragment extends Fragment {
     private RecyclerView mRecyclerView;
     private SwipeRefreshLayout mSwipe;
     private ProgressBar mProgress;
+    private TextView mSearchResult;
     private RecyclerFastScroller mFastScroll;
-    private DrawMeButton mPopupBubble;
 
-    private AsyncTask mAsyncTask;
+    private AsyncTaskBase mAsyncTask;
 
     @Nullable
     @Override
@@ -88,10 +91,10 @@ public class WallpapersFragment extends Fragment {
         mRecyclerView = view.findViewById(R.id.wallpapers_grid);
         mSwipe = view.findViewById(R.id.swipe);
         mProgress = view.findViewById(R.id.progress);
+        mSearchResult = view.findViewById(R.id.search_result);
         mFastScroll = view.findViewById(R.id.fastscroll);
-        mPopupBubble = view.findViewById(R.id.popup_bubble);
 
-        if (!Preferences.get(getActivity()).isToolbarShadowEnabled()) {
+        if (!Preferences.get(requireActivity()).isToolbarShadowEnabled()) {
             View shadow = view.findViewById(R.id.shadow);
             if (shadow != null) shadow.setVisibility(View.GONE);
         }
@@ -99,21 +102,26 @@ public class WallpapersFragment extends Fragment {
     }
 
     @Override
-    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        CandyBarApplication.getConfiguration().getAnalyticsHandler().logEvent(
+                "view",
+                new HashMap<String, Object>() {{ put("section", "wallpapers"); }}
+        );
+
         ViewCompat.setNestedScrollingEnabled(mRecyclerView, false);
 
-        initPopupBubble();
         mProgress.getIndeterminateDrawable().setColorFilter(
-                ColorHelper.getAttributeColor(getActivity(), R.attr.colorAccent),
+                ColorHelper.getAttributeColor(getActivity(), com.google.android.material.R.attr.colorSecondary),
                 PorterDuff.Mode.SRC_IN);
         mSwipe.setColorSchemeColors(
-                ContextCompat.getColor(getActivity(), R.color.swipeRefresh));
+                ColorHelper.getAttributeColor(requireActivity(), R.attr.cb_swipeRefresh));
 
         mRecyclerView.setItemAnimator(new DefaultItemAnimator());
         mRecyclerView.setHasFixedSize(false);
         mRecyclerView.setLayoutManager(new GridLayoutManager(getActivity(),
-                getActivity().getResources().getInteger(R.integer.wallpapers_column_count)));
+                requireActivity().getResources().getInteger(R.integer.wallpapers_column_count)));
 
         setFastScrollColor(mFastScroll);
         mFastScroll.attachRecyclerView(mRecyclerView);
@@ -128,10 +136,71 @@ public class WallpapersFragment extends Fragment {
     }
 
     @Override
-    public void onConfigurationChanged(Configuration newConfig) {
+    public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
+        inflater.inflate(R.menu.menu_search, menu);
+        MenuItem search = menu.findItem(R.id.menu_search);
+
+        View searchView = search.getActionView();
+        EditText searchInput = searchView.findViewById(R.id.search_input);
+        View clearQueryButton = searchView.findViewById(R.id.clear_query_button);
+
+        searchInput.setHint(requireActivity().getResources().getString(R.string.search_wallpapers));
+        searchInput.requestFocus();
+
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            if (getActivity() != null) {
+                SoftKeyboardHelper.openKeyboard(getActivity());
+            }
+        }, 1000);
+
+        searchInput.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+                String query = charSequence.toString();
+                filterSearch(query);
+                clearQueryButton.setVisibility(query.contentEquals("") ? View.GONE : View.VISIBLE);
+            }
+        });
+
+        clearQueryButton.setOnClickListener(view -> searchInput.setText(""));
+
+        search.setOnActionExpandListener(new MenuItem.OnActionExpandListener() {
+            @Override
+            public boolean onMenuItemActionExpand(MenuItem menuItem) {
+                searchInput.requestFocus();
+
+                new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                    if (getActivity() != null) {
+                        SoftKeyboardHelper.openKeyboard(getActivity());
+                    }
+                }, 1000);
+
+                return true;
+            }
+
+            @Override
+            public boolean onMenuItemActionCollapse(MenuItem menuItem) {
+                searchInput.setText("");
+                return true;
+            }
+        });
+
+        super.onCreateOptionsMenu(menu, inflater);
+    }
+
+    @Override
+    public void onConfigurationChanged(@NonNull Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
         ViewHelper.resetSpanCount(mRecyclerView,
-                getActivity().getResources().getInteger(R.integer.wallpapers_column_count));
+                requireActivity().getResources().getInteger(R.integer.wallpapers_column_count));
     }
 
     @Override
@@ -139,110 +208,61 @@ public class WallpapersFragment extends Fragment {
         if (mAsyncTask != null) mAsyncTask.cancel(true);
         Activity activity = getActivity();
         if (activity != null) Glide.get(activity).clearMemory();
+        setHasOptionsMenu(false);
         super.onDestroy();
     }
 
-    private void initPopupBubble() {
-        int color = ColorHelper.getAttributeColor(getActivity(), R.attr.colorAccent);
-        mPopupBubble.setCompoundDrawablesWithIntrinsicBounds(DrawableHelper.getTintedDrawable(
-                getActivity(), R.drawable.ic_toolbar_arrow_up, ColorHelper.getTitleTextColor(color)), null, null, null);
-        mPopupBubble.setOnClickListener(view -> {
-            WallpapersListener listener = (WallpapersListener) getActivity();
-            listener.onWallpapersChecked(null);
-
-            AnimationHelper.hide(getActivity().findViewById(R.id.popup_bubble))
-                    .start();
-
-            mAsyncTask = new WallpapersLoader(true).execute();
-        });
-    }
-
-    private void showPopupBubble() {
-        int wallpapersCount = Database.get(getActivity()).getWallpapersCount();
-        if (wallpapersCount == 0) return;
-
-        if (Preferences.get(getActivity()).getAvailableWallpapersCount() > wallpapersCount) {
-            AnimationHelper.show(mPopupBubble)
-                    .interpolator(new LinearOutSlowInInterpolator())
-                    .start();
+    @SuppressLint("StringFormatInvalid")
+    private void filterSearch(String query) {
+        if (mRecyclerView.getAdapter() != null) {
+            WallpapersAdapter adapter = (WallpapersAdapter) mRecyclerView.getAdapter();
+            adapter.search(query);
+            if (adapter.getItemCount() == 0) {
+                String text = requireActivity().getResources().getString(R.string.search_noresult, query);
+                mSearchResult.setText(text);
+                mSearchResult.setVisibility(View.VISIBLE);
+            } else mSearchResult.setVisibility(View.GONE);
         }
     }
 
-    private class WallpapersLoader extends AsyncTask<Void, Void, Boolean> {
+    private class WallpapersLoader extends AsyncTaskBase {
 
         private List<Wallpaper> wallpapers;
-        private boolean refreshing;
+        private final boolean refreshing;
 
         private WallpapersLoader(boolean refreshing) {
             this.refreshing = refreshing;
         }
 
         @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
+        protected void preRun() {
             if (!refreshing) mProgress.setVisibility(View.VISIBLE);
             else mSwipe.setRefreshing(true);
-
-            DrawMeButton popupBubble = getActivity().findViewById(R.id.popup_bubble);
-            if (popupBubble.getVisibility() == View.VISIBLE) {
-                AnimationHelper.hide(popupBubble).start();
-            }
         }
 
         @Override
-        protected Boolean doInBackground(Void... voids) {
-            while (!isCancelled()) {
+        protected boolean run() {
+            if (!isCancelled()) {
                 try {
                     Thread.sleep(1);
-                    if (!refreshing && (Database.get(getActivity()).getWallpapersCount() > 0)) {
-                        wallpapers = Database.get(getActivity()).getWallpapers();
-                        return true;
-                    }
 
-                    URL url = new URL(getString(R.string.wallpaper_json));
-                    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                    connection.setConnectTimeout(15000);
+                    InputStream stream = WallpaperHelper.getJSONStream(requireActivity());
 
-                    if (connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
-                        InputStream stream = connection.getInputStream();
-                        List list = JsonHelper.parseList(stream);
+                    if (stream != null) {
+                        List<?> list = JsonHelper.parseList(stream);
                         if (list == null) {
                             LogUtil.e("Json error, no array with name: "
                                     + CandyBarApplication.getConfiguration().getWallpaperJsonStructure().getArrayName());
                             return false;
                         }
 
-                        if (refreshing) {
-                            wallpapers = Database.get(getActivity()).getWallpapers();
-                            List<Wallpaper> newWallpapers = new ArrayList<>();
-                            for (int i = 0; i < list.size(); i++) {
-                                Wallpaper wallpaper = JsonHelper.getWallpaper(list.get(i));
-                                if (wallpaper != null) {
-                                    newWallpapers.add(wallpaper);
-                                }
-                            }
-
-                            List<Wallpaper> intersection = (List<Wallpaper>)
-                                    ListHelper.intersect(newWallpapers, wallpapers);
-                            List<Wallpaper> deleted = (List<Wallpaper>)
-                                    ListHelper.difference(intersection, wallpapers);
-                            List<Wallpaper> newlyAdded = (List<Wallpaper>)
-                                    ListHelper.difference(intersection, newWallpapers);
-
-                            Database.get(getActivity()).deleteWallpapers(deleted);
-                            Database.get(getActivity()).addWallpapers(newlyAdded);
-
-                            Preferences.get(getActivity()).setAvailableWallpapersCount(
-                                    Database.get(getActivity()).getWallpapersCount());
-                        } else {
-                            if (Database.get(getActivity()).getWallpapersCount() > 0) {
-                                Database.get(getActivity()).deleteWallpapers();
-                            }
-
-                            Database.get(getActivity()).addWallpapers(list);
+                        if (Database.get(requireActivity()).getWallpapersCount() > 0) {
+                            Database.get(requireActivity()).deleteWallpapers();
                         }
 
-                        wallpapers = Database.get(getActivity()).getWallpapers();
+                        Database.get(requireActivity()).addWallpapers(null, list);
+                        wallpapers = Database.get(requireActivity()).getWallpapers(null);
+
                         return true;
                     }
                 } catch (Exception e) {
@@ -254,8 +274,7 @@ public class WallpapersFragment extends Fragment {
         }
 
         @Override
-        protected void onPostExecute(Boolean aBoolean) {
-            super.onPostExecute(aBoolean);
+        protected void postRun(boolean ok) {
             if (getActivity() == null) return;
             if (getActivity().isFinishing()) return;
 
@@ -263,13 +282,13 @@ public class WallpapersFragment extends Fragment {
             mProgress.setVisibility(View.GONE);
             mSwipe.setRefreshing(false);
 
-            if (aBoolean) {
+            if (ok) {
+                setHasOptionsMenu(true);
+
                 mRecyclerView.setAdapter(new WallpapersAdapter(getActivity(), wallpapers));
 
-                WallpapersListener listener = (WallpapersListener) getActivity();
-                listener.onWallpapersChecked(new Intent()
-                        .putExtra("size", Preferences.get(getActivity()).getAvailableWallpapersCount())
-                        .putExtra("packageName", getActivity().getPackageName()));
+                ((WallpapersListener) getActivity())
+                        .onWallpapersChecked(Database.get(getActivity()).getWallpapersCount());
 
                 try {
                     if (getActivity().getResources().getBoolean(R.bool.show_intro)) {
@@ -282,7 +301,6 @@ public class WallpapersFragment extends Fragment {
                 Toast.makeText(getActivity(), R.string.connection_failed,
                         Toast.LENGTH_LONG).show();
             }
-            showPopupBubble();
         }
     }
 }

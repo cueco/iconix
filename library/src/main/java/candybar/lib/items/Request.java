@@ -24,13 +24,16 @@ import androidx.annotation.Nullable;
 
 public class Request {
 
-    private String mName;
-    private String mActivity;
+    private final String mName;
+    private final String mActivity;
     private String mPackageName;
     private String mOrderId;
     private String mProductId;
     private String mRequestedOn;
+    private String mIconBase64;
     private boolean mRequested;
+    private boolean mIsAvailableForRequest;
+    private String mInfoText;
 
     private Request(String name, String activity) {
         mName = name;
@@ -71,6 +74,12 @@ public class Request {
         return mRequestedOn;
     }
 
+    public String getIconBase64() { return mIconBase64; }
+
+    public boolean isAvailableForRequest() { return mIsAvailableForRequest; }
+
+    public String getInfoText() { return mInfoText; }
+
     public void setPackageName(String packageName) {
         mPackageName = packageName;
     }
@@ -91,6 +100,12 @@ public class Request {
         mRequested = requested;
     }
 
+    public void setIconBase64(String iconBase64) { mIconBase64 = iconBase64; }
+
+    public void setAvailableForRequest(boolean isAvailable) { mIsAvailableForRequest = isAvailable; }
+
+    public void setInfoText(String infoText) { mInfoText = infoText; }
+
     public static Builder Builder() {
         return new Builder();
     }
@@ -104,11 +119,15 @@ public class Request {
         private String mProductId;
         private String mRequestedOn;
         private boolean mRequested;
+        private boolean mIsAvailableForRequest;
+        private String mInfoText;
 
         private Builder() {
             mName = "";
             mActivity = "";
             mRequested = false;
+            mIsAvailableForRequest = true;
+            mInfoText = "";
         }
 
         public Builder name(String name) {
@@ -146,6 +165,16 @@ public class Request {
             return this;
         }
 
+        public Builder availableForRequest(boolean available) {
+            mIsAvailableForRequest = available;
+            return this;
+        }
+
+        public Builder infoText(String infoText) {
+            mInfoText = infoText;
+            return this;
+        }
+
         public Request build() {
             Request request = new Request(mName, mActivity);
             request.setPackageName(mPackageName);
@@ -153,6 +182,8 @@ public class Request {
             request.setRequested(mRequested);
             request.setOrderId(mOrderId);
             request.setProductId(mProductId);
+            request.setAvailableForRequest(mIsAvailableForRequest);
+            request.setInfoText(mInfoText);
             return request;
         }
     }
