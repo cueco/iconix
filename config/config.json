@@ -1,0 +1,17 @@
+
+{
+  "latestVersion": "3.8",
+  "latestVersionCode": 33,
+  "disableRequest": {
+    "below": 33,
+    "on": "32 31 30"
+  },
+  "url": "https://play.google.com/store/apps/details?id=cue.iconix",
+  "releaseNotes": [
+    "Added Update checker",
+    "Niagara &amp; Square launcher support",
+    "Auto Dark theme",
+    "Fixed Icon Requests",
+    "Bug fixes"
+  ]
+}
